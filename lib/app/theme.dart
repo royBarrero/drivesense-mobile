@@ -71,6 +71,45 @@ ThemeData _construirTema(ColoresDriveSense c, Brightness brillo) {
         }),
       ),
     ),
+    // Botón secundario, variante contorno (docs/diseno.md, 4)
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: ButtonStyle(
+        minimumSize: const WidgetStatePropertyAll(
+          Size.fromHeight(Medidas.altoBotonFormulario),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: Espacios.xl, vertical: 14),
+        ),
+        shape: const WidgetStatePropertyAll(StadiumBorder()),
+        textStyle: WidgetStatePropertyAll(t.boton),
+        side: WidgetStatePropertyAll(BorderSide(color: c.borde)),
+        foregroundColor: WidgetStateProperty.resolveWith((estados) {
+          if (estados.contains(WidgetState.disabled)) return c.textoTerciario;
+          return c.textoPrincipal;
+        }),
+        overlayColor: WidgetStatePropertyAll(c.fondoBotonSecundario),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: c.superficie,
+      surfaceTintColor: c.superficie,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radios.tarjeta),
+      ),
+      titleTextStyle: t.subtituloGrande.copyWith(color: c.textoPrincipal),
+      contentTextStyle: t.cuerpo.copyWith(color: c.textoSecundario),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: c.superficie,
+      surfaceTintColor: c.superficie,
+      showDragHandle: true,
+      dragHandleColor: c.bordeFuerte,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(Radios.tarjeta),
+        ),
+      ),
+    ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: c.enlace,

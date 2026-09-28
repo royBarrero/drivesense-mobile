@@ -42,6 +42,7 @@ Los nombres son **semánticos** (qué función cumplen, no qué color son), para
 | `textoPeligro` | #B91C1C | `0xFFB91C1C` | Texto del aviso de error |
 | `textoExito` | #047857 | `0xFF047857` | Requisito cumplido (lista de requisitos de contraseña). Mismo verde que `botonPrimario`: #10B981 no contrasta lo suficiente sobre blanco en texto pequeño |
 | `carril` | #E8E2D4 | `0xFFE8E2D4` | Carril de barras de progreso y del anillo **(propuesta)** |
+| `barraNavegacion` | #FFFFFF al 80 % | `0xCCFFFFFF` | Fondo translúcido de la barra de navegación inferior (sección 5) **(propuesta)** |
 
 **Tintes tenues** (el color de acento al 10–15 % sobre blanco) **(derivado)**:
 
@@ -63,6 +64,8 @@ Los nombres son **semánticos** (qué función cumplen, no qué color son), para
 | `encabezadoAcento` | #34D399 | `0xFF34D399` | Trazo del velocímetro, ruta y punto de la ilustración |
 | `encabezadoTexto` | #F3F4F6 | `0xFFF3F4F6` | Títulos |
 | `encabezadoTextoSecundario` | #9CA3AF | `0xFF9CA3AF` | Subtítulos |
+| `acentoOscuroTenue` | #34D399 al 14 % | `0x2434D399` | Cápsula de estado sobre fondo oscuro ("● Registrando viaje") **(propuesta)** |
+| `sobreAcentoOscuro` | #12171F | `0xFF12171F` | Texto e ícono del botón de acento (fondo `encabezadoAcento`) **(propuesta)** |
 
 **Degradados:**
 
@@ -97,10 +100,13 @@ Los nombres son **semánticos** (qué función cumplen, no qué color son), para
 
 | Token | Fuente | Tamaño | Peso | Otros | Uso |
 |---|---|---|---|---|---|
+| `velocimetro` | Space Grotesk | 120 | 700 | `height: 1.0` | Velocidad de la pantalla en vivo **(propuesta)** |
 | `telemetriaXL` | Space Grotesk | 64 | 700 (`w700`) | `height: 1.0` | Velocímetro principal |
+| `numeroGrande` | Space Grotesk | 32 | 700 | `height: 1.1` | Valores de las micro-tarjetas en vivo **(propuesta)** |
 | `telemetria` | Space Grotesk | 56 | 700 | `height: 1.0` | Otros valores grandes en vivo |
 | `puntaje` | Space Grotesk | 28 | 700 | `height: 1.1` | DriveScore y puntajes en tarjetas |
 | `numeroMetrica` | Space Grotesk | 18 | 500 | — | Valores numéricos pequeños (km, min) **(propuesta)** |
+| `tituloGrande` | Plus Jakarta Sans | 28 | 700 | `height: 1.2` | Saludo de Inicio, título del resumen **(propuesta)** |
 | `titulo` | Plus Jakarta Sans | 24 | 700 | `height: 1.2` | H1 de pantalla |
 | `subtituloGrande` | Plus Jakarta Sans | 18 | 600 | `height: 1.3` | Encabezado de tarjeta grande |
 | `subtitulo` | Plus Jakarta Sans | 16 | 600 | `height: 1.3` | Encabezado de tarjeta |
@@ -132,7 +138,7 @@ Los nombres son **semánticos** (qué función cumplen, no qué color son), para
 | `labelMedium` | `etiquetaGrande` |
 | `labelSmall` | `etiqueta` |
 
-Los estilos de Space Grotesk (`telemetriaXL`, `telemetria`, `puntaje`, `numeroMetrica`) no encajan en `TextTheme` y van en la `ThemeExtension` (sección 9).
+Los estilos de Space Grotesk (`velocimetro`, `telemetriaXL`, `telemetria`, `numeroGrande`, `puntaje`, `numeroMetrica`) y `tituloGrande` no encajan en `TextTheme` y van en la `ThemeExtension` (sección 9).
 
 ---
 
@@ -175,6 +181,7 @@ CSS y Flutter miden el desenfoque distinto: en CSS, `blur` = 2 × sigma; en Flut
 |---|---|---|
 | `sombraTarjeta` | `BoxShadow(color: Color(0x0F000000), offset: Offset(0, 4), blurRadius: 16)` (negro al 6 %) | Tarjetas, siempre junto con el borde de 1 dp |
 | `sombraBotonPrimario` | `BoxShadow(color: Color(0x3310B981), offset: Offset(0, 6), blurRadius: 16)` (esmeralda al 20 %) | Botón primario **(desplazamiento en propuesta)** |
+| `sombraBotonAcento` | `BoxShadow(color: Color(0x4034D399), offset: Offset(0, 6), blurRadius: 16)` (#34D399 al 25 %) | Botón de acento sobre fondo oscuro **(propuesta)** |
 | `resplandorPunto` | `BoxShadow(color: Color(0x6610B981), blurRadius: 12, spreadRadius: 2)` (esmeralda al 40 %) | Punto de la diana de fuerzas G **(propuesta)** |
 
 ---
@@ -185,6 +192,7 @@ CSS y Flutter miden el desenfoque distinto: en CSS, `blur` = 2 × sigma; en Flut
 |---|---|
 | **Primario** ("Iniciar Detección", "Finalizar Viaje") | `StadiumBorder`, fondo `botonPrimario`, texto e ícono `sobrePrimario`, `padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14)` (54 de alto en formularios), ícono de 20 dp con separación de 8 dp, texto `boton` (600), sombra `sombraBotonPrimario`. Presionado: fondo `botonPrimarioPresionado`. Deshabilitado: fondo `fondoBotonSecundario`, texto `textoSecundario`, sin sombra. Cargando: indicador circular de 20 dp en `sobrePrimario` en lugar del texto |
 | **Secundario** ("Pausar", "Calibrar") | `StadiumBorder` o radio `radioMicro` (16), mismo padding que el primario. Variante *relleno*: fondo `fondoBotonSecundario`, texto `textoPrincipal`. Variante *contorno*: fondo transparente, borde de 1 dp `borde`, texto `textoPrincipal`. Sin sombra |
+| **Acento sobre oscuro** ("Iniciar recorrido" en la tarjeta oscura) | `StadiumBorder`, fondo `encabezadoAcento`, texto e ícono `sobreAcentoOscuro`, mismo padding y alto que el primario, sombra `sombraBotonAcento` **(propuesta)** |
 | **Chip de filtro activo** | Cápsula, `padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6)`, fondo `primario` o `textoPrincipal` (#1E252D), texto `sobrePrimario`, `cuerpoPequeno` con peso 600 **(propuesta)** |
 | **Chip de filtro inactivo** | Mismo tamaño, fondo `superficie`, borde de 1 dp `borde`, texto `textoSecundario` |
 
@@ -210,11 +218,12 @@ Con Material 3, esto se configura una sola vez en `filledButtonTheme`, `outlined
 
 ## 5. Barra de navegación inferior
 
-- Fondo `superficie` al 80 % (`0xCCFFFFFF`) **(propuesta)**, con `BackdropFilter(filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12))`. El `blur()` de CSS ya es la sigma, así que se traslada tal cual. Borde superior de 1 dp `borde`.
+- Fondo `barraNavegacion` (`superficie` al 80 %, `0xCCFFFFFF`) **(propuesta)**, con `BackdropFilter(filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12))`. El `blur()` de CSS ya es la sigma, así que se traslada tal cual. Borde superior de 1 dp `borde`.
 - El cuerpo de la pantalla necesita `extendBody: true` en el `Scaffold` para que el contenido pase por detrás de la barra y se vea el desenfoque.
 - **Ítem activo:** cápsula `tinteNavActivo` detrás del ícono y la etiqueta; ícono y texto en `primarioOscuro`, peso 700.
 - **Ítem inactivo:** sin cápsula; `textoTerciario`, peso 500.
-- Tamaños: ícono 24, etiqueta 12 **(propuesta)**.
+- Tamaños: ícono 24, etiqueta 12 (`ayuda` con el peso del estado) **(propuesta)**.
+- Cápsula del ítem: `padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6)`, radio píldora; barra con padding vertical 8 más el margen inferior del sistema **(propuesta)**.
 
 ## 6. Tarjetas
 
@@ -222,7 +231,7 @@ Con Material 3, esto se configura una sola vez en `filledButtonTheme`, `outlined
 |---|---|
 | **Grande** | Radio 24, fondo `superficie`, borde de 1 dp `borde`, `sombraTarjeta`, padding 20 |
 | **Micro-tarjeta de telemetría** | Radio 16, borde de 1 dp `borde`, `sombraTarjeta`, padding 12. Fondo tintado según estado (tabla abajo) |
-| **Caja de ícono** | 36×36, radio 12, fondo blanco al 70 % sobre el tinte **(propuesta)**, ícono de 20 dp en el color del estado |
+| **Caja de ícono** | 36×36 (`Medidas.cajaIcono`), radio 12, fondo blanco al 70 % sobre el tinte **(propuesta)**, ícono de 20 dp en el color del estado |
 
 | Estado | Fondo | Color de ícono / acento |
 |---|---|---|
@@ -235,6 +244,8 @@ Con Material 3, esto se configura una sola vez en `filledButtonTheme`, `outlined
 
 ### Anillo de DriveScore
 - `CustomPainter`, trazo de 12 dp (10 en tamaños pequeños) y `StrokeCap.round`.
+- Tarjeta de Inicio: 88×88 (`Medidas.anilloInicio`) con trazo de 10 (`Medidas.trazoAnilloPequeno`) **(propuesta)**.
+- Sin datos todavía: solo el carril con "—" en el centro (`puntaje`, `textoTerciario`) y un texto explicativo al lado.
 - Carril completo en `carril`; arco de progreso con `SweepGradient` de `gradienteScore`, empezando arriba (−90°).
 - Número central con `puntaje` (o `telemetria` si el anillo es el protagonista de la pantalla).
 
@@ -263,9 +274,21 @@ Stitch dice "verde > 90 %"; se toma 90 % exacto como verde para no dejar el valo
 
 ---
 
+## 7.1 Pantallas principales (propuesta)
+
+| Elemento | Especificación |
+|---|---|
+| **Cabecera de Inicio** | Logo pequeño (caja de 36, radio 12, fondo `encabezadoFondo`) + "DriveSense" (`subtitulo`); a la derecha el avatar con las iniciales (círculo de 44, `Medidas.avatar`, fondo `encabezadoFondo`, texto `encabezadoAcento` en `subtitulo`) |
+| **Tarjeta oscura de recorrido** | Fondo `encabezadoFondo`, radio `radioTarjetaDestacada` (28), padding 24, diana (círculos + ejes en `encabezadoBorde`) recortada en la esquina superior derecha. Etiqueta en `encabezadoAcento`, título `tituloTarjeta` en `encabezadoTexto`, texto `cuerpo` en `encabezadoTextoSecundario` |
+| **Bloque en vivo** | Alto 460 (`Medidas.altoBloqueEnVivo`), fondo `encabezadoFondo`, radio inferior `radioEncabezado`; diana centrada detrás de la velocidad y ruta punteada en `encabezadoAcento`. Botón volver: caja de 44, fondo `encabezadoSuperficie`, borde `encabezadoBorde`, radio `radioLogo`. Cápsulas: "Registrando" con fondo `acentoOscuroTenue` y texto `encabezadoAcento`; "GPS" con contorno `encabezadoBorde` (sin señal: `advertencia`) |
+| **Micro-tarjeta en vivo** | Radio 16, fondo `superficie`, borde + `sombraTarjeta`, padding 16; caja de ícono de 36 tintada (`tintePrimario` / `tinteConfort`) y valor en `numeroGrande` |
+| **Bloque del resumen** | Alto 300 (`Medidas.altoBloqueResumen`), fondo `encabezadoFondo`, radio inferior `radioEncabezado`; círculo de 64 (`Medidas.circuloEstado`) en `encabezadoAcento` con check en `sobreAcentoOscuro`; título `tituloGrande` en `encabezadoTexto`. La tarjeta de métricas se superpone 48 (`Medidas.superposicionResumen`) |
+| **Viaje descartado** | Círculo de 88 (`Medidas.circuloDescartado`) en `tinteAdvertencia` con ícono en `advertencia` |
+| **Perfil** | Avatar de 64 (`Medidas.avatarGrande`); cápsula del rol en `tintePrimario` con texto `primarioOscuro`; "Cerrar sesión" de contorno con borde `bordePeligroSuave` y texto e ícono `textoPeligro` |
+
 ## 8. Íconos
 
-- Tamaños: 16 dp en listas de requisitos (`iconoPequeno`), 20 dp en botones y cajas de ícono, 24 dp en la barra de navegación.
+- Tamaños: 16 dp en listas de requisitos (`iconoPequeno`), 20 dp en botones y cajas de ícono, 24 dp en la barra de navegación, 32 dp dentro de los círculos de estado del resumen (`iconoEstado`) **(propuesta)**.
 - El color siempre se toma de los tokens, nunca de `Colors.*`.
 
 ## 9. Implementación en el tema

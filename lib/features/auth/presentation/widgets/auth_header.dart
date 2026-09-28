@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design/design.dart';
 import '../../../../core/widgets/logo.dart';
-import 'route_illustration_painter.dart';
+import '../../../../core/widgets/illustration_painters.dart';
 
 enum IlustracionEncabezado { completa, reducida }
 

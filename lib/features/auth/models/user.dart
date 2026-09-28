@@ -17,6 +17,8 @@ class EmpresaResumen {
 
   /// `flota` | `aseguradora`
   final String tipo;
+
+  Map<String, dynamic> toJson() => {'id': id, 'nombre': nombre, 'tipo': tipo};
 }
 
 /// Usuario autenticado, tal como lo devuelve `UsuarioSalida` del backend.
@@ -52,4 +54,15 @@ class Usuario {
   final String rol;
   final bool debeCambiarContrasenia;
   final EmpresaResumen? empresa;
+
+  /// Mismo formato que `fromJson` (se guarda en el teléfono para entrar sin conexión).
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'nombre': nombre,
+    'email': email,
+    'telefono': telefono,
+    'rol': rol,
+    'debe_cambiar_contrasenia': debeCambiarContrasenia,
+    'empresa': empresa?.toJson(),
+  };
 }

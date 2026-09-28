@@ -13,11 +13,14 @@ abstract final class Fuentes {
 @immutable
 class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
   const TipografiaDriveSense({
+    required this.velocimetro,
     required this.telemetriaXL,
+    required this.numeroGrande,
     required this.telemetria,
     required this.puntaje,
     required this.numeroMetrica,
     required this.tituloHero,
+    required this.tituloGrande,
     required this.titulo,
     required this.tituloTarjeta,
     required this.marca,
@@ -33,13 +36,16 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
   });
 
   // Space Grotesk: números de telemetría y puntajes
+  final TextStyle velocimetro;
   final TextStyle telemetriaXL;
+  final TextStyle numeroGrande;
   final TextStyle telemetria;
   final TextStyle puntaje;
   final TextStyle numeroMetrica;
 
   // Plus Jakarta Sans: interfaz
   final TextStyle tituloHero;
+  final TextStyle tituloGrande;
   final TextStyle titulo;
   final TextStyle tituloTarjeta;
   final TextStyle marca;
@@ -56,6 +62,24 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
   final TextStyle etiquetaGrande;
 
   static const base = TipografiaDriveSense(
+    velocimetro: TextStyle(
+      fontFamily: Fuentes.numeros,
+      fontSize: 120,
+      fontWeight: FontWeight.w700,
+      height: 1.0,
+    ),
+    numeroGrande: TextStyle(
+      fontFamily: Fuentes.numeros,
+      fontSize: 32,
+      fontWeight: FontWeight.w700,
+      height: 1.1,
+    ),
+    tituloGrande: TextStyle(
+      fontFamily: Fuentes.interfaz,
+      fontSize: 28,
+      fontWeight: FontWeight.w700,
+      height: 1.2,
+    ),
     telemetriaXL: TextStyle(
       fontFamily: Fuentes.numeros,
       fontSize: 64,
@@ -171,7 +195,10 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
 
   @override
   TipografiaDriveSense copyWith({
+    TextStyle? velocimetro,
     TextStyle? telemetriaXL,
+    TextStyle? numeroGrande,
+    TextStyle? tituloGrande,
     TextStyle? telemetria,
     TextStyle? puntaje,
     TextStyle? numeroMetrica,
@@ -190,7 +217,10 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
     TextStyle? etiquetaGrande,
   }) {
     return TipografiaDriveSense(
+      velocimetro: velocimetro ?? this.velocimetro,
       telemetriaXL: telemetriaXL ?? this.telemetriaXL,
+      numeroGrande: numeroGrande ?? this.numeroGrande,
+      tituloGrande: tituloGrande ?? this.tituloGrande,
       telemetria: telemetria ?? this.telemetria,
       puntaje: puntaje ?? this.puntaje,
       numeroMetrica: numeroMetrica ?? this.numeroMetrica,
@@ -215,7 +245,10 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
     if (other == null) return this;
     TextStyle l(TextStyle a, TextStyle b) => TextStyle.lerp(a, b, t)!;
     return TipografiaDriveSense(
+      velocimetro: l(velocimetro, other.velocimetro),
       telemetriaXL: l(telemetriaXL, other.telemetriaXL),
+      numeroGrande: l(numeroGrande, other.numeroGrande),
+      tituloGrande: l(tituloGrande, other.tituloGrande),
       telemetria: l(telemetria, other.telemetria),
       puntaje: l(puntaje, other.puntaje),
       numeroMetrica: l(numeroMetrica, other.numeroMetrica),

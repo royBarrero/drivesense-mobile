@@ -6,19 +6,37 @@ import '../features/auth/presentation/splash_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/providers/session_provider.dart';
+import '../features/inicio/presentation/home_screen.dart';
+import '../features/perfil/presentation/profile_screen.dart';
+import '../features/recorridos/presentation/live_trip_screen.dart';
+import '../features/recorridos/presentation/trip_summary_screen.dart';
+import '../features/recorridos/presentation/trips_screen.dart';
+import 'main_shell.dart';
 import 'placeholder_screens.dart';
 
 abstract final class Rutas {
   static const arranque = '/arranque';
   static const login = '/login';
   static const registro = '/registro';
-  static const inicio = '/inicio';
   static const cambioContrasenia = '/cambio-contrasenia';
+
+  // Pestañas de la barra inferior
+  static const inicio = '/inicio';
+  static const viajes = '/viajes';
+  static const perfil = '/perfil';
+
+  // Recorrido, a pantalla completa (fuera de la barra)
+  static const recorrido = '/recorrido';
+  static const resumenRecorrido = '/resumen-recorrido';
+
+  /// Rutas que un usuario con sesión no debe ver.
+  static const _fueraDeSesion = {arranque, login, registro, cambioContrasenia};
 }
 
 /// Las rutas se deciden a partir de `sesionProvider`:
 /// comprobando o con error → arranque; sin sesión → login (o registro);
-/// con sesión → cambio de contraseña si es temporal, si no → inicio.
+/// con sesión → cambio de contraseña si es temporal; si no, cualquier ruta de la
+/// app (desde arranque, login o registro → inicio).
 final rutasProvider = Provider<GoRouter>((ref) {
   // Avisa a GoRouter para que vuelva a evaluar `redirect` cuando cambia la sesión
   final cambioSesion = ValueNotifier<int>(0);
@@ -42,10 +60,10 @@ final rutasProvider = Provider<GoRouter>((ref) {
             : Rutas.login;
       }
 
-      final destino = usuario.debeCambiarContrasenia
-          ? Rutas.cambioContrasenia
-          : Rutas.inicio;
-      return ruta == destino ? null : destino;
+      if (usuario.debeCambiarContrasenia) {
+        return ruta == Rutas.cambioContrasenia ? null : Rutas.cambioContrasenia;
+      }
+      return Rutas._fueraDeSesion.contains(ruta) ? Rutas.inicio : null;
     },
     routes: [
       GoRoute(
@@ -57,9 +75,43 @@ final rutasProvider = Provider<GoRouter>((ref) {
         path: Rutas.registro,
         builder: (_, _) => const RegistroPantalla(),
       ),
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, navegacion) =>
+            PantallaPrincipal(navegacion: navegacion),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Rutas.inicio,
+                builder: (_, _) => const InicioPantalla(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Rutas.viajes,
+                builder: (_, _) => const ViajesPantalla(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Rutas.perfil,
+                builder: (_, _) => const PerfilPantalla(),
+              ),
+            ],
+          ),
+        ],
+      ),
       GoRoute(
-        path: Rutas.inicio,
-        builder: (_, _) => const InicioProvisionalPantalla(),
+        path: Rutas.recorrido,
+        builder: (_, _) => const RecorridoEnVivoPantalla(),
+      ),
+      GoRoute(
+        path: Rutas.resumenRecorrido,
+        builder: (_, _) => const ResumenRecorridoPantalla(),
       ),
       GoRoute(
         path: Rutas.cambioContrasenia,

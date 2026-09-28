@@ -4,35 +4,47 @@ import 'package:flutter/material.dart';
 
 import '../design/design.dart';
 
-/// Caja del logo con el velocímetro en trazo + "DriveSense". Pensado para fondos oscuros.
+/// Caja del logo con el velocímetro en trazo + "DriveSense".
+///
+/// Por defecto, para fondos oscuros (login, registro, arranque). [compacto]:
+/// caja de 36 y texto oscuro, para la cabecera clara de Inicio (docs/diseno.md, 7.1).
 class LogoDriveSense extends StatelessWidget {
-  const LogoDriveSense({super.key});
+  const LogoDriveSense({super.key, this.compacto = false});
+
+  final bool compacto;
 
   @override
   Widget build(BuildContext context) {
     final colores = context.colores;
+    final tipografia = context.tipografia;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: Medidas.logo,
-          height: Medidas.logo,
+          width: compacto ? Medidas.cajaIcono : Medidas.logo,
+          height: compacto ? Medidas.cajaIcono : Medidas.logo,
           decoration: BoxDecoration(
-            color: colores.encabezadoSuperficie,
-            borderRadius: BorderRadius.circular(Radios.logo),
-            border: Border.all(color: colores.encabezadoBorde),
+            color: compacto
+                ? colores.encabezadoFondo
+                : colores.encabezadoSuperficie,
+            borderRadius: BorderRadius.circular(
+              compacto ? Radios.cajaIcono : Radios.logo,
+            ),
+            border: compacto
+                ? null
+                : Border.all(color: colores.encabezadoBorde),
           ),
-          padding: const EdgeInsets.all(Espacios.s - 1),
+          padding: EdgeInsets.all(compacto ? Espacios.xs : Espacios.s - 1),
           child: CustomPaint(
             painter: _VelocimetroPainter(colores.encabezadoAcento),
           ),
         ),
-        const SizedBox(width: Espacios.s),
+        SizedBox(width: compacto ? Espacios.xs + 2 : Espacios.s),
         Text(
           'DriveSense',
-          style: context.tipografia.marca.copyWith(
-            color: colores.encabezadoTexto,
-          ),
+          style: compacto
+              ? tipografia.subtitulo.copyWith(color: colores.textoPrincipal)
+              : tipografia.marca.copyWith(color: colores.encabezadoTexto),
         ),
       ],
     );

@@ -29,6 +29,21 @@ abstract final class Medidas {
   static const iconoNavegacion = 24.0;
   static const logo = 44.0;
   static const botonVolver = 44.0;
+  static const cajaIcono = 36.0;
+
+  // Anillo de DriveScore de Inicio (docs/diseno.md, 7)
+  static const anilloInicio = 88.0;
+  static const trazoAnilloPequeno = 10.0;
+
+  // Pantallas principales (docs/diseno.md, 7.1)
+  static const avatar = 44.0;
+  static const avatarGrande = 64.0;
+  static const altoBloqueEnVivo = 460.0;
+  static const altoBloqueResumen = 300.0;
+  static const superposicionResumen = 48.0;
+  static const circuloEstado = 64.0;
+  static const circuloDescartado = 88.0;
+  static const iconoEstado = 32.0;
 
   // Pantallas de autenticación (docs/diseno.md, 4.2)
   static const superposicionTarjeta = 56.0;

@@ -26,6 +26,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     required this.enlace,
     required this.fondoBotonSecundario,
     required this.carril,
+    required this.barraNavegacion,
     required this.bordePeligroSuave,
     required this.textoPeligro,
     required this.textoExito,
@@ -40,10 +41,13 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     required this.encabezadoAcento,
     required this.encabezadoTexto,
     required this.encabezadoTextoSecundario,
+    required this.acentoOscuroTenue,
+    required this.sobreAcentoOscuro,
     required this.gradienteScore,
     required this.gradienteRellenoGrafica,
     required this.sombraTarjeta,
     required this.sombraBotonPrimario,
+    required this.sombraBotonAcento,
     required this.resplandorPunto,
   });
 
@@ -67,6 +71,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
   final Color enlace;
   final Color fondoBotonSecundario;
   final Color carril;
+  final Color barraNavegacion;
   final Color bordePeligroSuave;
   final Color textoPeligro;
   final Color textoExito;
@@ -83,12 +88,15 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
   final Color encabezadoAcento;
   final Color encabezadoTexto;
   final Color encabezadoTextoSecundario;
+  final Color acentoOscuroTenue;
+  final Color sobreAcentoOscuro;
 
   final LinearGradient gradienteScore;
   final LinearGradient gradienteRellenoGrafica;
 
   final List<BoxShadow> sombraTarjeta;
   final List<BoxShadow> sombraBotonPrimario;
+  final List<BoxShadow> sombraBotonAcento;
   final List<BoxShadow> resplandorPunto;
 
   static const claro = ColoresDriveSense(
@@ -112,6 +120,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     enlace: Color(0xFF047857),
     fondoBotonSecundario: Color(0xFFE8E2D4),
     carril: Color(0xFFE8E2D4),
+    barraNavegacion: Color(0xCCFFFFFF),
     bordePeligroSuave: Color(0xFFF8C9C9),
     textoPeligro: Color(0xFFB91C1C),
     textoExito: Color(0xFF047857),
@@ -126,6 +135,8 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     encabezadoAcento: Color(0xFF34D399),
     encabezadoTexto: Color(0xFFF3F4F6),
     encabezadoTextoSecundario: Color(0xFF9CA3AF),
+    acentoOscuroTenue: Color(0x2434D399),
+    sobreAcentoOscuro: Color(0xFF12171F),
     gradienteScore: LinearGradient(
       colors: [Color(0xFF10B981), Color(0xFF06B6D4)],
     ),
@@ -140,6 +151,9 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     ],
     sombraBotonPrimario: [
       BoxShadow(color: Color(0x3310B981), offset: Offset(0, 6), blurRadius: 16),
+    ],
+    sombraBotonAcento: [
+      BoxShadow(color: Color(0x4034D399), offset: Offset(0, 6), blurRadius: 16),
     ],
     resplandorPunto: [
       BoxShadow(color: Color(0x6610B981), blurRadius: 12, spreadRadius: 2),
@@ -168,6 +182,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     Color? enlace,
     Color? fondoBotonSecundario,
     Color? carril,
+    Color? barraNavegacion,
     Color? bordePeligroSuave,
     Color? textoPeligro,
     Color? textoExito,
@@ -182,10 +197,13 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     Color? encabezadoAcento,
     Color? encabezadoTexto,
     Color? encabezadoTextoSecundario,
+    Color? acentoOscuroTenue,
+    Color? sobreAcentoOscuro,
     LinearGradient? gradienteScore,
     LinearGradient? gradienteRellenoGrafica,
     List<BoxShadow>? sombraTarjeta,
     List<BoxShadow>? sombraBotonPrimario,
+    List<BoxShadow>? sombraBotonAcento,
     List<BoxShadow>? resplandorPunto,
   }) {
     return ColoresDriveSense(
@@ -210,6 +228,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       enlace: enlace ?? this.enlace,
       fondoBotonSecundario: fondoBotonSecundario ?? this.fondoBotonSecundario,
       carril: carril ?? this.carril,
+      barraNavegacion: barraNavegacion ?? this.barraNavegacion,
       bordePeligroSuave: bordePeligroSuave ?? this.bordePeligroSuave,
       textoPeligro: textoPeligro ?? this.textoPeligro,
       textoExito: textoExito ?? this.textoExito,
@@ -225,11 +244,14 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       encabezadoTexto: encabezadoTexto ?? this.encabezadoTexto,
       encabezadoTextoSecundario:
           encabezadoTextoSecundario ?? this.encabezadoTextoSecundario,
+      acentoOscuroTenue: acentoOscuroTenue ?? this.acentoOscuroTenue,
+      sobreAcentoOscuro: sobreAcentoOscuro ?? this.sobreAcentoOscuro,
       gradienteScore: gradienteScore ?? this.gradienteScore,
       gradienteRellenoGrafica:
           gradienteRellenoGrafica ?? this.gradienteRellenoGrafica,
       sombraTarjeta: sombraTarjeta ?? this.sombraTarjeta,
       sombraBotonPrimario: sombraBotonPrimario ?? this.sombraBotonPrimario,
+      sombraBotonAcento: sombraBotonAcento ?? this.sombraBotonAcento,
       resplandorPunto: resplandorPunto ?? this.resplandorPunto,
     );
   }
@@ -264,6 +286,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       enlace: c(enlace, other.enlace),
       fondoBotonSecundario: c(fondoBotonSecundario, other.fondoBotonSecundario),
       carril: c(carril, other.carril),
+      barraNavegacion: c(barraNavegacion, other.barraNavegacion),
       bordePeligroSuave: c(bordePeligroSuave, other.bordePeligroSuave),
       textoPeligro: c(textoPeligro, other.textoPeligro),
       textoExito: c(textoExito, other.textoExito),
@@ -281,6 +304,8 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
         encabezadoTextoSecundario,
         other.encabezadoTextoSecundario,
       ),
+      acentoOscuroTenue: c(acentoOscuroTenue, other.acentoOscuroTenue),
+      sobreAcentoOscuro: c(sobreAcentoOscuro, other.sobreAcentoOscuro),
       gradienteScore: LinearGradient.lerp(
         gradienteScore,
         other.gradienteScore,
@@ -293,6 +318,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       )!,
       sombraTarjeta: s(sombraTarjeta, other.sombraTarjeta),
       sombraBotonPrimario: s(sombraBotonPrimario, other.sombraBotonPrimario),
+      sombraBotonAcento: s(sombraBotonAcento, other.sombraBotonAcento),
       resplandorPunto: s(resplandorPunto, other.resplandorPunto),
     );
   }

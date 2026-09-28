@@ -2,24 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../design/design.dart';
 
-/// Botón píldora principal (docs/diseno.md, sección 4).
+/// Botón píldora de acento para fondos oscuros (docs/diseno.md, 4):
+/// fondo `encabezadoAcento`, texto `sobreAcentoOscuro` y sombra verde suave.
 ///
 /// Con [alPresionar] nulo queda deshabilitado; con [cargando] muestra un indicador.
-class BotonPrimario extends StatelessWidget {
-  const BotonPrimario({
+class BotonAcento extends StatelessWidget {
+  const BotonAcento({
     super.key,
     required this.texto,
     required this.alPresionar,
-    this.cargando = false,
     this.icono,
+    this.cargando = false,
   });
 
   final String texto;
   final VoidCallback? alPresionar;
-  final bool cargando;
-
-  /// Ícono de 20 dp antes del texto, separado 8 dp (docs/diseno.md, 4).
   final IconData? icono;
+  final bool cargando;
 
   @override
   Widget build(BuildContext context) {
@@ -29,32 +28,37 @@ class BotonPrimario extends StatelessWidget {
     return DecoratedBox(
       decoration: ShapeDecoration(
         shape: const StadiumBorder(),
-        shadows: habilitado ? colores.sombraBotonPrimario : null,
+        shadows: habilitado ? colores.sombraBotonAcento : null,
       ),
       child: FilledButton(
         onPressed: habilitado ? alPresionar : null,
-        // Mientras carga se mantiene el color activo, no el de deshabilitado
-        style: cargando
-            ? FilledButton.styleFrom(
-                disabledBackgroundColor: colores.botonPrimario,
-                disabledForegroundColor: colores.sobrePrimario,
-              )
-            : null,
+        style: FilledButton.styleFrom(
+          backgroundColor: colores.encabezadoAcento,
+          foregroundColor: colores.sobreAcentoOscuro,
+          // Mientras carga se mantiene el color activo
+          disabledBackgroundColor: cargando
+              ? colores.encabezadoAcento
+              : colores.encabezadoBorde,
+          disabledForegroundColor: cargando
+              ? colores.sobreAcentoOscuro
+              : colores.encabezadoTextoSecundario,
+          overlayColor: colores.sobreAcentoOscuro,
+        ),
         child: cargando
             ? SizedBox.square(
                 dimension: Medidas.icono,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: colores.sobrePrimario,
+                  color: colores.sobreAcentoOscuro,
                 ),
               )
-            : icono == null
-            ? Text(texto)
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icono, size: Medidas.icono),
-                  const SizedBox(width: Espacios.xs),
+                  if (icono != null) ...[
+                    Icon(icono, size: Medidas.icono),
+                    const SizedBox(width: Espacios.xs),
+                  ],
                   Flexible(child: Text(texto)),
                 ],
               ),

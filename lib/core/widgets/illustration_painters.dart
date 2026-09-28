@@ -2,23 +2,41 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-/// Ilustración decorativa del encabezado del login: círculos concéntricos con ejes
-/// (el del medio punteado), una ruta curva punteada y un punto con resplandor.
+/// Ilustración decorativa de los bloques oscuros (login, recorrido en vivo):
+/// círculos concéntricos con ejes (el del medio punteado), una ruta curva
+/// punteada y un punto con resplandor.
 ///
-/// Se dibuja sobre todo el encabezado; el conjunto de círculos queda abajo a la derecha.
+/// Se dibuja sobre todo el bloque. Por defecto (login) los círculos quedan abajo
+/// a la derecha; [centro] los coloca en otro punto y [escala] cambia su tamaño.
 class IlustracionRutaPainter extends CustomPainter {
   IlustracionRutaPainter({
     required this.colorLineas,
     required this.colorAcento,
+    this.centro,
+    this.escala = 1,
+    this.conPunto = true,
+    this.huecoCentral = 0,
   });
 
   final Color colorLineas;
   final Color colorAcento;
 
+  /// Centro de los círculos según el tamaño del bloque.
+  final Offset Function(Size tamano)? centro;
+  final double escala;
+
+  /// Punto con resplandor en el centro; se omite si algo va encima (la velocidad).
+  final bool conPunto;
+
+  /// Radio alrededor del centro donde no se dibuja la ruta (deja legible lo que
+  /// va encima, como la velocidad).
+  final double huecoCentral;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final centro = Offset(size.width - 58, size.height - 128);
-    const radios = [26.0, 50.0, 74.0];
+    final centro =
+        this.centro?.call(size) ?? Offset(size.width - 58, size.height - 128);
+    final radios = [26.0 * escala, 50.0 * escala, 74.0 * escala];
 
     final lineas = Paint()
       ..color = colorLineas
@@ -36,7 +54,7 @@ class IlustracionRutaPainter extends CustomPainter {
     canvas.drawCircle(centro, radios[2], lineas);
 
     // Ejes cruzados
-    const largoEje = 88.0;
+    final largoEje = 88.0 * escala;
     canvas.drawLine(
       centro.translate(-largoEje, 0),
       centro.translate(largoEje, 0),
@@ -67,6 +85,17 @@ class IlustracionRutaPainter extends CustomPainter {
         size.width + 12,
         centro.dy - 150,
       );
+    canvas.save();
+    if (huecoCentral > 0) {
+      canvas.clipPath(
+        Path.combine(
+          PathOperation.difference,
+          Path()..addRect(Offset.zero & size),
+          Path()
+            ..addOval(Rect.fromCircle(center: centro, radius: huecoCentral)),
+        ),
+      );
+    }
     dibujarPunteado(
       canvas,
       ruta,
@@ -78,6 +107,9 @@ class IlustracionRutaPainter extends CustomPainter {
       guion: 6,
       espacio: 7,
     );
+    canvas.restore();
+
+    if (!conPunto) return;
 
     // Punto con resplandor
     canvas.drawCircle(
@@ -93,15 +125,19 @@ class IlustracionRutaPainter extends CustomPainter {
   @override
   bool shouldRepaint(IlustracionRutaPainter oldDelegate) =>
       oldDelegate.colorLineas != colorLineas ||
-      oldDelegate.colorAcento != colorAcento;
+      oldDelegate.colorAcento != colorAcento ||
+      oldDelegate.escala != escala ||
+      oldDelegate.conPunto != conPunto ||
+      oldDelegate.huecoCentral != huecoCentral;
 }
 
-/// Versión reducida para el encabezado del registro: solo los 3 círculos
-/// (el del medio punteado) con ejes, centrados en el área disponible.
+/// Solo los 3 círculos (el del medio punteado) con ejes, centrados en el área
+/// disponible: encabezado del registro y, con [escala], la tarjeta oscura de Inicio.
 class CirculosReducidosPainter extends CustomPainter {
-  CirculosReducidosPainter({required this.colorLineas});
+  CirculosReducidosPainter({required this.colorLineas, this.escala = 1});
 
   final Color colorLineas;
+  final double escala;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -111,17 +147,17 @@ class CirculosReducidosPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    canvas.drawCircle(centro, 14, lineas);
+    canvas.drawCircle(centro, 14 * escala, lineas);
     dibujarPunteado(
       canvas,
-      Path()..addOval(Rect.fromCircle(center: centro, radius: 26)),
+      Path()..addOval(Rect.fromCircle(center: centro, radius: 26 * escala)),
       lineas,
       guion: 3,
       espacio: 4,
     );
-    canvas.drawCircle(centro, 38, lineas);
+    canvas.drawCircle(centro, 38 * escala, lineas);
 
-    const largoEje = 44.0;
+    final largoEje = 44.0 * escala;
     canvas.drawLine(
       centro.translate(-largoEje, 0),
       centro.translate(largoEje, 0),
@@ -136,7 +172,7 @@ class CirculosReducidosPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CirculosReducidosPainter oldDelegate) =>
-      oldDelegate.colorLineas != colorLineas;
+      oldDelegate.colorLineas != colorLineas || oldDelegate.escala != escala;
 }
 
 /// Dibuja [camino] como una línea punteada.
