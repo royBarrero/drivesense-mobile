@@ -5,9 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_error.dart';
 import '../../auth/providers/session_provider.dart';
+import '../../puntaje/providers/score_history_provider.dart';
 import '../data/trip_local_storage.dart';
 import '../data/trips_repository.dart';
 import '../models/trip.dart';
+import '../models/trip_score.dart';
+import 'trip_history_provider.dart';
+import 'trip_provider.dart';
 
 enum ResultadoEnvio {
   /// El backend lo recibió (o ya lo tenía: 409).
@@ -21,12 +25,16 @@ enum ResultadoEnvio {
 }
 
 class Envio {
-  const Envio(this.resultado, {this.recorrido, this.mensaje});
+  const Envio(this.resultado, {this.recorrido, this.puntaje, this.mensaje});
 
   final ResultadoEnvio resultado;
 
   /// Respuesta del backend; nula si el envío no fue un 200.
   final Recorrido? recorrido;
+
+  /// DriveScore (HU-15): de la respuesta o, si ya estaba finalizado (409), del
+  /// detalle del recorrido. Nulo si no se pudo obtener o si se descartó.
+  final PuntajeViaje? puntaje;
 
   /// Motivo del rechazo.
   final String? mensaje;
@@ -91,16 +99,51 @@ class ResumenPendienteNotifier extends AsyncNotifier<ResumenRecorrido?> {
       if (ref.mounted) state = const AsyncData(null);
     }
 
+    // El viaje ya está en el backend: el historial, Inicio (semana, último viaje
+    // y DriveScore) y Mi DriveScore (HU-17) se vuelven a cargar
+    void actualizarHistorial() {
+      if (ref.mounted) {
+        ref.invalidate(historialProvider);
+        ref.invalidate(ultimoViajeProvider);
+        ref.invalidate(historicoPuntajeProvider);
+      }
+    }
+
+    // Si el resumen de la pantalla esperaba este envío, se actualiza (HU-15)
+    Envio avisar(Envio envio) {
+      if (ref.mounted) {
+        ref
+            .read(viajeProvider.notifier)
+            .alEnviarResumen(resumen.recorridoId, envio);
+      }
+      return envio;
+    }
+
     try {
       final recorrido = await repositorio.finalizar(resumen);
       await borrar();
-      return Envio(ResultadoEnvio.enviado, recorrido: recorrido);
+      actualizarHistorial();
+      return avisar(
+        Envio(
+          ResultadoEnvio.enviado,
+          recorrido: recorrido,
+          puntaje: recorrido.puntaje,
+        ),
+      );
     } on ErrorApi catch (e) {
       switch (e.codigo) {
         case 409:
-          // Ya estaba finalizado (p. ej. la respuesta anterior se perdió)
+          // Ya estaba finalizado (p. ej. la respuesta anterior se perdió): el
+          // puntaje se pide al detalle
           await borrar();
-          return const Envio(ResultadoEnvio.enviado);
+          actualizarHistorial();
+          PuntajeViaje? puntaje;
+          try {
+            puntaje = (await repositorio.obtener(resumen.recorridoId)).puntaje;
+          } on ErrorApi {
+            puntaje = null;
+          }
+          return avisar(Envio(ResultadoEnvio.enviado, puntaje: puntaje));
         case 404 || 422:
           await borrar();
           return Envio(ResultadoEnvio.rechazado, mensaje: e.mensaje);

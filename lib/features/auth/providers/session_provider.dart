@@ -85,6 +85,18 @@ class SesionNotifier extends AsyncNotifier<Usuario?> {
   void reintentar() => ref.invalidateSelf();
 }
 
+/// Hace la petición y, si la sesión ya no es válida (401), la cierra.
+Future<T> conSesion<T>(Ref ref, Future<T> Function() peticion) async {
+  // Se lee antes de esperar: si se cierra sesión a mitad, `ref` ya no sirve
+  final sesion = ref.read(sesionProvider.notifier);
+  try {
+    return await peticion();
+  } on ErrorApi catch (e) {
+    if (e.codigo == 401) await sesion.cerrarSesion();
+    rethrow;
+  }
+}
+
 final sesionProvider = AsyncNotifierProvider<SesionNotifier, Usuario?>(
   SesionNotifier.new,
   // Sin reintentos automáticos de Riverpod: el arranque muestra el error y un botón "Reintentar"

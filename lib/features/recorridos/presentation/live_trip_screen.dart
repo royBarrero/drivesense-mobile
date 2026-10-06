@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,11 +10,18 @@ import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/illustration_painters.dart';
 import '../../../core/widgets/label.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../telemetria/data/calibration_recorder.dart';
+import '../../telemetria/presentation/widgets/diagnostic_panel.dart';
+import '../../telemetria/models/live_alerts.dart';
+import '../../telemetria/presentation/widgets/maneuver_mark_sheet.dart';
 import '../providers/trip_provider.dart';
 import 'trip_format.dart';
+import 'widgets/live_alert_capsules.dart';
 import 'widgets/metric_tile.dart';
+import 'widgets/trip_events_card.dart';
 
-/// Viaje en curso: velocidad, tiempo y distancia en vivo (HU-04) y "Finalizar viaje" (HU-05).
+/// Viaje en curso: velocidad, tiempo y distancia en vivo (HU-04), avisos y
+/// contadores de eventos (HU-14) y "Finalizar viaje" (HU-05).
 ///
 /// "Atrás" vuelve a Inicio y el viaje sigue registrándose.
 class RecorridoEnVivoPantalla extends ConsumerStatefulWidget {
@@ -71,10 +79,15 @@ class _RecorridoEnVivoPantallaState
   @override
   Widget build(BuildContext context) {
     final colores = context.colores;
-    final tipografia = context.tipografia;
     final estado = ref.watch(viajeProvider).value;
     if (estado is ViajeEnCurso) _ultimo = estado;
     final viaje = _ultimo;
+    // Modo calibración (solo en desarrollo). La pantalla se redibuja cada
+    // segundo, así que basta con leer si está grabando
+    final marcar =
+        kDebugMode &&
+        viaje != null &&
+        ref.watch(registroCalibracionProvider).grabando;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // Íconos claros sobre el bloque oscuro
@@ -82,92 +95,100 @@ class _RecorridoEnVivoPantallaState
       child: Scaffold(
         body: viaje == null
             ? const SizedBox.shrink()
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+            : Stack(
                 children: [
-                  _BloqueVelocidad(viaje: viaje, alVolver: _volver),
-                  Expanded(
-                    child: SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: const EdgeInsets.all(Espacios.l),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      BloqueVelocidadEnVivo(viaje: viaje, alVolver: _volver),
+                      Expanded(
+                        child: SafeArea(
+                          top: false,
+                          child: Padding(
+                            padding: const EdgeInsets.all(Espacios.l),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                // Desplazable para que el panel de diagnóstico
+                                // entre en desarrollo; el botón queda fijo
                                 Expanded(
-                                  child: TarjetaMetrica(
-                                    icono: Icons.timer_outlined,
-                                    tinte: colores.tintePrimario,
-                                    colorIcono: colores.primarioOscuro,
-                                    etiqueta: 'Tiempo',
-                                    valor: FormatoViaje.duracion(
-                                      viaje.duracionS,
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TarjetaMetrica(
+                                                icono: Icons.timer_outlined,
+                                                tinte: colores.tintePrimario,
+                                                colorIcono:
+                                                    colores.primarioOscuro,
+                                                etiqueta: 'Tiempo',
+                                                valor: FormatoViaje.duracion(
+                                                  viaje.duracionS,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: Espacios.m),
+                                            Expanded(
+                                              child: TarjetaMetrica(
+                                                icono: Icons.route_outlined,
+                                                tinte: colores.tinteConfort,
+                                                colorIcono: colores.confort,
+                                                etiqueta: 'Distancia',
+                                                valor: FormatoViaje.kilometros(
+                                                  viaje.distanciaM,
+                                                ),
+                                                unidad: 'km',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: Espacios.m),
+                                        TarjetaEventosViaje(
+                                          eventos: viaje.viaje.eventos,
+                                        ),
+                                        // Solo en la versión de desarrollo (HU-07)
+                                        if (kDebugMode) ...[
+                                          const SizedBox(height: Espacios.m),
+                                          PanelDiagnostico(viaje: viaje),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: Espacios.m),
-                                Expanded(
-                                  child: TarjetaMetrica(
-                                    icono: Icons.route_outlined,
-                                    tinte: colores.tinteConfort,
-                                    colorIcono: colores.confort,
-                                    etiqueta: 'Distancia',
-                                    valor: FormatoViaje.kilometros(
-                                      viaje.distanciaM,
-                                    ),
-                                    unidad: 'km',
-                                  ),
+                                const SizedBox(height: Espacios.m),
+                                if (_error != null) ...[
+                                  AvisoError(mensaje: _error!),
+                                  const SizedBox(height: Espacios.m),
+                                ],
+                                BotonPrimario(
+                                  texto: 'Finalizar viaje',
+                                  icono: Icons.stop_rounded,
+                                  cargando: _finalizando,
+                                  alPresionar: _confirmarFinalizar,
                                 ),
                               ],
                             ),
-                            const SizedBox(height: Espacios.m),
-                            Container(
-                              padding: const EdgeInsets.all(Espacios.s),
-                              decoration: BoxDecoration(
-                                color: colores.superficieAlt,
-                                borderRadius: BorderRadius.circular(
-                                  Radios.micro,
-                                ),
-                                border: Border.all(color: colores.borde),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.phonelink_lock_outlined,
-                                    size: Medidas.icono,
-                                    color: colores.primarioOscuro,
-                                  ),
-                                  const SizedBox(width: Espacios.xs),
-                                  Expanded(
-                                    child: Text(
-                                      'Puedes apagar la pantalla: seguimos '
-                                      'registrando tu viaje.',
-                                      style: tipografia.cuerpoPequeno.copyWith(
-                                        color: colores.textoSecundario,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Spacer(),
-                            if (_error != null) ...[
-                              AvisoError(mensaje: _error!),
-                              const SizedBox(height: Espacios.m),
-                            ],
-                            BotonPrimario(
-                              texto: 'Finalizar viaje',
-                              icono: Icons.stop_rounded,
-                              cargando: _finalizando,
-                              alPresionar: _confirmarFinalizar,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
+                  // Modo calibración: sobre el bloque oscuro, debajo de la
+                  // máxima (la parte clara no tiene lugar libre)
+                  if (marcar)
+                    const Positioned(
+                      top:
+                          Medidas.altoBloqueEnVivo -
+                          Medidas.altoBotonMarca -
+                          Espacios.l,
+                      left: 0,
+                      right: 0,
+                      child: Center(child: BotonMarcarManiobra()),
+                    ),
                 ],
               ),
       ),
@@ -176,8 +197,17 @@ class _RecorridoEnVivoPantallaState
 }
 
 /// Bloque oscuro superior: estado, velocidad y máxima, con la diana detrás.
-class _BloqueVelocidad extends StatelessWidget {
-  const _BloqueVelocidad({required this.viaje, required this.alVolver});
+///
+/// Avisos (HU-14): un evento puntual tiñe el aro y el punto de la diana y
+/// reemplaza la máxima por su cápsula; un exceso de velocidad abierto tiñe el
+/// número y el punto y muestra cuánto lleva sobre el límite. El puntual tiene
+/// prioridad.
+class BloqueVelocidadEnVivo extends StatelessWidget {
+  const BloqueVelocidadEnVivo({
+    super.key,
+    required this.viaje,
+    required this.alVolver,
+  });
 
   /// La ruta no cruza la velocidad ni "km/h" (el círculo intermedio de la diana).
   static const _huecoVelocidad = 50.0 * 1.9;
@@ -189,6 +219,12 @@ class _BloqueVelocidad extends StatelessWidget {
   Widget build(BuildContext context) {
     final colores = context.colores;
     final tipografia = context.tipografia;
+    final aviso = viaje.aviso;
+    final colorAviso = switch (aviso) {
+      AvisoPuntual(:final tipo) => EstiloEvento.de(tipo, colores).vivo,
+      AvisoExceso() => colores.eventoVelocidad,
+      SinAviso() => null,
+    };
 
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(
@@ -210,6 +246,8 @@ class _BloqueVelocidad extends StatelessWidget {
                   escala: 1.9,
                   conPunto: false,
                   huecoCentral: _huecoVelocidad,
+                  colorAro: aviso is AvisoPuntual ? colorAviso : null,
+                  colorPunto: colorAviso,
                 ),
               ),
             ),
@@ -266,7 +304,9 @@ class _BloqueVelocidad extends StatelessWidget {
                             Text(
                               FormatoViaje.velocidad(viaje.velocidadKmh),
                               style: tipografia.velocimetro.copyWith(
-                                color: colores.encabezadoTexto,
+                                color: aviso is AvisoExceso
+                                    ? colores.eventoVelocidad
+                                    : colores.encabezadoTexto,
                               ),
                             ),
                             Text(
@@ -276,13 +316,37 @@ class _BloqueVelocidad extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: Espacios.m),
-                            _Capsula(
-                              fondo: colores.encabezadoSuperficie,
-                              borde: colores.encabezadoBorde,
-                              color: colores.encabezadoTextoSecundario,
-                              icono: Icons.speed,
-                              texto:
-                                  'Máxima ${FormatoViaje.velocidad(viaje.viaje.acumulador.velocidadMaximaKmh)} km/h',
+                            // Una sola cápsula a la vez: la anterior se quita
+                            // de inmediato y la nueva aparece con un fundido,
+                            // así nunca se superponen. Alto fijo: la velocidad
+                            // no salta al cambiar de cápsula
+                            SizedBox(
+                              height: Medidas.altoCapsulaEvento,
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                layoutBuilder: (actual, anteriores) =>
+                                    Center(child: actual),
+                                child: switch (aviso) {
+                                  AvisoPuntual(:final tipo) => CapsulaEvento(
+                                    key: ValueKey(tipo),
+                                    tipo: tipo,
+                                  ),
+                                  AvisoExceso(:final duracionS) =>
+                                    CapsulaExceso(
+                                      key: const ValueKey('exceso'),
+                                      duracionS: duracionS,
+                                    ),
+                                  SinAviso() => _Capsula(
+                                    key: const ValueKey('maxima'),
+                                    fondo: colores.encabezadoSuperficie,
+                                    borde: colores.encabezadoBorde,
+                                    color: colores.encabezadoTextoSecundario,
+                                    icono: Icons.speed,
+                                    texto:
+                                        'Máxima ${FormatoViaje.velocidad(viaje.viaje.acumulador.velocidadMaximaKmh)} km/h',
+                                  ),
+                                },
+                              ),
                             ),
                           ],
                         ),
@@ -335,6 +399,7 @@ class _BotonVolver extends StatelessWidget {
 /// Cápsula de estado sobre el bloque oscuro.
 class _Capsula extends StatelessWidget {
   const _Capsula({
+    super.key,
     required this.color,
     required this.texto,
     this.fondo,

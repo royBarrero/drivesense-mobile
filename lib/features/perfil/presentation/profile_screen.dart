@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +7,8 @@ import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/label.dart';
 import '../../auth/providers/session_provider.dart';
 import '../../recorridos/providers/trip_provider.dart';
+import '../../telemetria/providers/alert_sound_provider.dart';
+import '../../telemetria/providers/calibration_mode_provider.dart';
 
 /// Pestaña Perfil: datos del conductor y cierre de sesión.
 class PerfilPantalla extends ConsumerWidget {
@@ -94,6 +97,13 @@ class PerfilPantalla extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: Espacios.m),
+          const _Tarjeta(child: _SonidoAvisos()),
+          // Solo en la versión de desarrollo (HU-07)
+          if (kDebugMode) ...[
+            const SizedBox(height: Espacios.m),
+            _Tarjeta(child: _ModoCalibracion(enViaje: enViaje)),
+          ],
           const SizedBox(height: Espacios.xl),
           OutlinedButton.icon(
             onPressed: enViaje
@@ -116,6 +126,101 @@ class PerfilPantalla extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Sonido de los avisos de eventos (HU-14). Silenciado, solo vibra. Se puede
+/// cambiar durante el viaje.
+class _SonidoAvisos extends ConsumerWidget {
+  const _SonidoAvisos();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colores = context.colores;
+    final activo = ref.watch(sonidoAvisosProvider).value ?? true;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Etiqueta('Avisos'),
+              const SizedBox(height: Espacios.xxs),
+              Text(
+                'Sonido de avisos',
+                style: context.tipografia.cuerpo.copyWith(
+                  color: colores.textoPrincipal,
+                ),
+              ),
+              Text(
+                'La vibración se mantiene aunque lo silencies.',
+                style: context.tipografia.ayuda.copyWith(
+                  color: colores.textoSecundario,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: Espacios.s),
+        Switch(
+          value: activo,
+          onChanged: (valor) =>
+              ref.read(sonidoAvisosProvider.notifier).cambiar(valor),
+        ),
+      ],
+    );
+  }
+}
+
+/// Graba en un CSV los datos crudos del siguiente viaje (sensores y GPS).
+class _ModoCalibracion extends ConsumerWidget {
+  const _ModoCalibracion({required this.enViaje});
+
+  final bool enViaje;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colores = context.colores;
+    final activo = ref.watch(modoCalibracionProvider).value ?? false;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Etiqueta('Desarrollo'),
+              const SizedBox(height: Espacios.xxs),
+              Text(
+                'Modo calibración',
+                style: context.tipografia.cuerpo.copyWith(
+                  color: colores.textoPrincipal,
+                ),
+              ),
+              Text(
+                enViaje
+                    ? 'Se aplica al siguiente viaje.'
+                    : 'Graba en un CSV los datos crudos de los sensores y del '
+                          'GPS del próximo viaje.',
+                style: context.tipografia.ayuda.copyWith(
+                  color: colores.textoSecundario,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: Espacios.s),
+        Switch(
+          value: activo,
+          // Cambiarlo a mitad de viaje dejaría un CSV incompleto
+          onChanged: enViaje
+              ? null
+              : (valor) =>
+                    ref.read(modoCalibracionProvider.notifier).cambiar(valor),
+        ),
+      ],
     );
   }
 }

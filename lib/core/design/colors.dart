@@ -35,6 +35,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     required this.tintePeligro,
     required this.tinteAdvertencia,
     required this.tinteNavActivo,
+    required this.tinteSecundario,
     required this.encabezadoFondo,
     required this.encabezadoSuperficie,
     required this.encabezadoBorde,
@@ -43,8 +44,25 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     required this.encabezadoTextoSecundario,
     required this.acentoOscuroTenue,
     required this.sobreAcentoOscuro,
+    required this.eventoFrenada,
+    required this.eventoAceleracion,
+    required this.eventoGiro,
+    required this.eventoVelocidad,
+    required this.textoEventoFrenada,
+    required this.textoEventoAceleracion,
+    required this.textoEventoGiro,
+    required this.textoEventoVelocidad,
+    required this.tinteEventoFrenada,
+    required this.tinteEventoAceleracion,
+    required this.tinteEventoGiro,
+    required this.tinteEventoVelocidad,
     required this.gradienteScore,
     required this.gradienteRellenoGrafica,
+    required this.textoSobreGradiente,
+    required this.superficieSobreGradiente,
+    required this.lineasSobreGradiente,
+    required this.bordeRuta,
+    required this.fondoAtribucion,
     required this.sombraTarjeta,
     required this.sombraBotonPrimario,
     required this.sombraBotonAcento,
@@ -81,6 +99,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
   final Color tintePeligro;
   final Color tinteAdvertencia;
   final Color tinteNavActivo;
+  final Color tinteSecundario;
 
   final Color encabezadoFondo;
   final Color encabezadoSuperficie;
@@ -91,8 +110,32 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
   final Color acentoOscuroTenue;
   final Color sobreAcentoOscuro;
 
+  /// Eventos de riesgo (HU-14): tono vivo sobre el encabezado oscuro, texto
+  /// sobre fondos claros y tinte de la tarjeta de contadores.
+  final Color eventoFrenada;
+  final Color eventoAceleracion;
+  final Color eventoGiro;
+  final Color eventoVelocidad;
+  final Color textoEventoFrenada;
+  final Color textoEventoAceleracion;
+  final Color textoEventoGiro;
+  final Color textoEventoVelocidad;
+  final Color tinteEventoFrenada;
+  final Color tinteEventoAceleracion;
+  final Color tinteEventoGiro;
+  final Color tinteEventoVelocidad;
+
   final LinearGradient gradienteScore;
   final LinearGradient gradienteRellenoGrafica;
+
+  /// Texto, botón volver y líneas decorativas sobre `gradienteScore`.
+  final Color textoSobreGradiente;
+  final Color superficieSobreGradiente;
+  final Color lineasSobreGradiente;
+
+  /// Mapa del viaje (HU-29): borde tenue de la ruta y fondo de la atribución.
+  final Color bordeRuta;
+  final Color fondoAtribucion;
 
   final List<BoxShadow> sombraTarjeta;
   final List<BoxShadow> sombraBotonPrimario;
@@ -106,7 +149,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     borde: Color(0xFFE2DCCF),
     bordeFuerte: Color(0xFFDFD8C7),
     textoPrincipal: Color(0xFF1E252D),
-    textoSecundario: Color(0xFF5F6B76),
+    textoSecundario: Color(0xFF4B5661),
     textoTerciario: Color(0xFF7B8893),
     sobrePrimario: Color(0xFFFFFFFF),
     primario: Color(0xFF10B981),
@@ -129,6 +172,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     tintePeligro: Color(0xFFFDECEC),
     tinteAdvertencia: Color(0xFFFEF5E7),
     tinteNavActivo: Color(0xFFDBF4EC),
+    tinteSecundario: Color(0xFFE2F4FC),
     encabezadoFondo: Color(0xFF1E252D),
     encabezadoSuperficie: Color(0xFF12171F),
     encabezadoBorde: Color(0xFF2A3440),
@@ -137,6 +181,18 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     encabezadoTextoSecundario: Color(0xFF9CA3AF),
     acentoOscuroTenue: Color(0x2434D399),
     sobreAcentoOscuro: Color(0xFF12171F),
+    eventoFrenada: Color(0xFFF87171),
+    eventoAceleracion: Color(0xFFA78BFA),
+    eventoGiro: Color(0xFFF59E0B),
+    eventoVelocidad: Color(0xFF38BDF8),
+    textoEventoFrenada: Color(0xFFB91C1C),
+    textoEventoAceleracion: Color(0xFF6D28D9),
+    textoEventoGiro: Color(0xFFB45309),
+    textoEventoVelocidad: Color(0xFF0369A1),
+    tinteEventoFrenada: Color(0xFFFDECEC),
+    tinteEventoAceleracion: Color(0xFFF3EFFE),
+    tinteEventoGiro: Color(0xFFFEF5E7),
+    tinteEventoVelocidad: Color(0xFFE2F4FC),
     gradienteScore: LinearGradient(
       colors: [Color(0xFF10B981), Color(0xFF06B6D4)],
     ),
@@ -145,6 +201,11 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       end: Alignment.bottomCenter,
       colors: [Color(0x2610B981), Color(0x0010B981)],
     ),
+    textoSobreGradiente: Color(0xFF0B2A22),
+    superficieSobreGradiente: Color(0x4DFFFFFF),
+    lineasSobreGradiente: Color(0x59FFFFFF),
+    bordeRuta: Color(0x400B2A22),
+    fondoAtribucion: Color(0xCCFFFFFF),
     // blurRadius 16 en Flutter ≈ blur 20px de CSS (ver docs/diseno.md 3.3)
     sombraTarjeta: [
       BoxShadow(color: Color(0x0F000000), offset: Offset(0, 4), blurRadius: 16),
@@ -191,6 +252,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     Color? tintePeligro,
     Color? tinteAdvertencia,
     Color? tinteNavActivo,
+    Color? tinteSecundario,
     Color? encabezadoFondo,
     Color? encabezadoSuperficie,
     Color? encabezadoBorde,
@@ -199,8 +261,25 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     Color? encabezadoTextoSecundario,
     Color? acentoOscuroTenue,
     Color? sobreAcentoOscuro,
+    Color? eventoFrenada,
+    Color? eventoAceleracion,
+    Color? eventoGiro,
+    Color? eventoVelocidad,
+    Color? textoEventoFrenada,
+    Color? textoEventoAceleracion,
+    Color? textoEventoGiro,
+    Color? textoEventoVelocidad,
+    Color? tinteEventoFrenada,
+    Color? tinteEventoAceleracion,
+    Color? tinteEventoGiro,
+    Color? tinteEventoVelocidad,
     LinearGradient? gradienteScore,
     LinearGradient? gradienteRellenoGrafica,
+    Color? textoSobreGradiente,
+    Color? superficieSobreGradiente,
+    Color? lineasSobreGradiente,
+    Color? bordeRuta,
+    Color? fondoAtribucion,
     List<BoxShadow>? sombraTarjeta,
     List<BoxShadow>? sombraBotonPrimario,
     List<BoxShadow>? sombraBotonAcento,
@@ -237,6 +316,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       tintePeligro: tintePeligro ?? this.tintePeligro,
       tinteAdvertencia: tinteAdvertencia ?? this.tinteAdvertencia,
       tinteNavActivo: tinteNavActivo ?? this.tinteNavActivo,
+      tinteSecundario: tinteSecundario ?? this.tinteSecundario,
       encabezadoFondo: encabezadoFondo ?? this.encabezadoFondo,
       encabezadoSuperficie: encabezadoSuperficie ?? this.encabezadoSuperficie,
       encabezadoBorde: encabezadoBorde ?? this.encabezadoBorde,
@@ -246,9 +326,29 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
           encabezadoTextoSecundario ?? this.encabezadoTextoSecundario,
       acentoOscuroTenue: acentoOscuroTenue ?? this.acentoOscuroTenue,
       sobreAcentoOscuro: sobreAcentoOscuro ?? this.sobreAcentoOscuro,
+      eventoFrenada: eventoFrenada ?? this.eventoFrenada,
+      eventoAceleracion: eventoAceleracion ?? this.eventoAceleracion,
+      eventoGiro: eventoGiro ?? this.eventoGiro,
+      eventoVelocidad: eventoVelocidad ?? this.eventoVelocidad,
+      textoEventoFrenada: textoEventoFrenada ?? this.textoEventoFrenada,
+      textoEventoAceleracion:
+          textoEventoAceleracion ?? this.textoEventoAceleracion,
+      textoEventoGiro: textoEventoGiro ?? this.textoEventoGiro,
+      textoEventoVelocidad: textoEventoVelocidad ?? this.textoEventoVelocidad,
+      tinteEventoFrenada: tinteEventoFrenada ?? this.tinteEventoFrenada,
+      tinteEventoAceleracion:
+          tinteEventoAceleracion ?? this.tinteEventoAceleracion,
+      tinteEventoGiro: tinteEventoGiro ?? this.tinteEventoGiro,
+      tinteEventoVelocidad: tinteEventoVelocidad ?? this.tinteEventoVelocidad,
       gradienteScore: gradienteScore ?? this.gradienteScore,
       gradienteRellenoGrafica:
           gradienteRellenoGrafica ?? this.gradienteRellenoGrafica,
+      textoSobreGradiente: textoSobreGradiente ?? this.textoSobreGradiente,
+      superficieSobreGradiente:
+          superficieSobreGradiente ?? this.superficieSobreGradiente,
+      lineasSobreGradiente: lineasSobreGradiente ?? this.lineasSobreGradiente,
+      bordeRuta: bordeRuta ?? this.bordeRuta,
+      fondoAtribucion: fondoAtribucion ?? this.fondoAtribucion,
       sombraTarjeta: sombraTarjeta ?? this.sombraTarjeta,
       sombraBotonPrimario: sombraBotonPrimario ?? this.sombraBotonPrimario,
       sombraBotonAcento: sombraBotonAcento ?? this.sombraBotonAcento,
@@ -295,6 +395,7 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       tintePeligro: c(tintePeligro, other.tintePeligro),
       tinteAdvertencia: c(tinteAdvertencia, other.tinteAdvertencia),
       tinteNavActivo: c(tinteNavActivo, other.tinteNavActivo),
+      tinteSecundario: c(tinteSecundario, other.tinteSecundario),
       encabezadoFondo: c(encabezadoFondo, other.encabezadoFondo),
       encabezadoSuperficie: c(encabezadoSuperficie, other.encabezadoSuperficie),
       encabezadoBorde: c(encabezadoBorde, other.encabezadoBorde),
@@ -306,6 +407,24 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       ),
       acentoOscuroTenue: c(acentoOscuroTenue, other.acentoOscuroTenue),
       sobreAcentoOscuro: c(sobreAcentoOscuro, other.sobreAcentoOscuro),
+      eventoFrenada: c(eventoFrenada, other.eventoFrenada),
+      eventoAceleracion: c(eventoAceleracion, other.eventoAceleracion),
+      eventoGiro: c(eventoGiro, other.eventoGiro),
+      eventoVelocidad: c(eventoVelocidad, other.eventoVelocidad),
+      textoEventoFrenada: c(textoEventoFrenada, other.textoEventoFrenada),
+      textoEventoAceleracion: c(
+        textoEventoAceleracion,
+        other.textoEventoAceleracion,
+      ),
+      textoEventoGiro: c(textoEventoGiro, other.textoEventoGiro),
+      textoEventoVelocidad: c(textoEventoVelocidad, other.textoEventoVelocidad),
+      tinteEventoFrenada: c(tinteEventoFrenada, other.tinteEventoFrenada),
+      tinteEventoAceleracion: c(
+        tinteEventoAceleracion,
+        other.tinteEventoAceleracion,
+      ),
+      tinteEventoGiro: c(tinteEventoGiro, other.tinteEventoGiro),
+      tinteEventoVelocidad: c(tinteEventoVelocidad, other.tinteEventoVelocidad),
       gradienteScore: LinearGradient.lerp(
         gradienteScore,
         other.gradienteScore,
@@ -316,6 +435,14 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
         other.gradienteRellenoGrafica,
         t,
       )!,
+      textoSobreGradiente: c(textoSobreGradiente, other.textoSobreGradiente),
+      superficieSobreGradiente: c(
+        superficieSobreGradiente,
+        other.superficieSobreGradiente,
+      ),
+      lineasSobreGradiente: c(lineasSobreGradiente, other.lineasSobreGradiente),
+      bordeRuta: c(bordeRuta, other.bordeRuta),
+      fondoAtribucion: c(fondoAtribucion, other.fondoAtribucion),
       sombraTarjeta: s(sombraTarjeta, other.sombraTarjeta),
       sombraBotonPrimario: s(sombraBotonPrimario, other.sombraBotonPrimario),
       sombraBotonAcento: s(sombraBotonAcento, other.sombraBotonAcento),

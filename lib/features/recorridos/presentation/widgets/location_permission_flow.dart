@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../app/router.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../data/location_service.dart';
+import '../../providers/trip_provider.dart';
+
+/// Prepara la ubicación, inicia un viaje y abre la pantalla en vivo (Inicio y
+/// Viajes sin viajes). Lanza `ErrorRecorrido` si no se pudo iniciar.
+Future<void> iniciarViaje(BuildContext context, WidgetRef ref) async {
+  if (!await prepararUbicacion(context, ref)) return;
+  await ref.read(viajeProvider.notifier).iniciar();
+  if (context.mounted) context.push(Rutas.recorrido);
+}
 
 /// Prepara permisos y GPS antes de iniciar o continuar un viaje.
 ///

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,7 +8,10 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/providers/session_provider.dart';
 import '../features/inicio/presentation/home_screen.dart';
 import '../features/perfil/presentation/profile_screen.dart';
+import '../features/puntaje/presentation/score_history_screen.dart';
 import '../features/recorridos/presentation/live_trip_screen.dart';
+import '../features/recorridos/presentation/trip_detail_screen.dart';
+import '../features/recorridos/presentation/trip_map_screen.dart';
 import '../features/recorridos/presentation/trip_summary_screen.dart';
 import '../features/recorridos/presentation/trips_screen.dart';
 import 'main_shell.dart';
@@ -25,13 +28,25 @@ abstract final class Rutas {
   static const viajes = '/viajes';
   static const perfil = '/perfil';
 
+  /// Mi DriveScore (HU-17), a pantalla completa (sobre la barra).
+  static const miDriveScore = '$inicio/drivescore';
+
+  /// Detalle de un viaje del historial, a pantalla completa (sobre la barra).
+  static String detalleViaje(int id) => '$viajes/$id';
+
   // Recorrido, a pantalla completa (fuera de la barra)
   static const recorrido = '/recorrido';
   static const resumenRecorrido = '/resumen-recorrido';
 
+  /// Mapa completo de un viaje (HU-29): se abre con `push` y los datos en
+  /// `extra` (`DatosMapaViaje`), desde el resumen o el detalle.
+  static const mapaViaje = '/mapa-viaje';
+
   /// Rutas que un usuario con sesión no debe ver.
   static const _fueraDeSesion = {arranque, login, registro, cambioContrasenia};
 }
+
+final _navegadorRaiz = GlobalKey<NavigatorState>();
 
 /// Las rutas se deciden a partir de `sesionProvider`:
 /// comprobando o con error → arranque; sin sesión → login (o registro);
@@ -43,6 +58,7 @@ final rutasProvider = Provider<GoRouter>((ref) {
   ref.listen(sesionProvider, (_, _) => cambioSesion.value++);
 
   final router = GoRouter(
+    navigatorKey: _navegadorRaiz,
     initialLocation: Rutas.arranque,
     refreshListenable: cambioSesion,
     redirect: (context, estado) {
@@ -84,6 +100,14 @@ final rutasProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: Rutas.inicio,
                 builder: (_, _) => const InicioPantalla(),
+                routes: [
+                  GoRoute(
+                    path: 'drivescore',
+                    // Tapa la barra inferior; "atrás" vuelve a Inicio
+                    parentNavigatorKey: _navegadorRaiz,
+                    builder: (_, _) => const MiDriveScorePantalla(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -92,6 +116,16 @@ final rutasProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: Rutas.viajes,
                 builder: (_, _) => const ViajesPantalla(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    // Tapa la barra inferior; "atrás" vuelve a la lista
+                    parentNavigatorKey: _navegadorRaiz,
+                    builder: (_, estado) => DetalleViajePantalla(
+                      recorridoId: int.parse(estado.pathParameters['id']!),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -112,6 +146,11 @@ final rutasProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Rutas.resumenRecorrido,
         builder: (_, _) => const ResumenRecorridoPantalla(),
+      ),
+      GoRoute(
+        path: Rutas.mapaViaje,
+        builder: (_, estado) =>
+            MapaViajePantalla(datos: estado.extra! as DatosMapaViaje),
       ),
       GoRoute(
         path: Rutas.cambioContrasenia,

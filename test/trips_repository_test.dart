@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:drivesense/core/api/api_error.dart';
 import 'package:drivesense/features/recorridos/data/trips_repository.dart';
 import 'package:drivesense/features/recorridos/models/trip.dart';
+import 'package:drivesense/features/recorridos/models/trip_history.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Responde siempre lo mismo, sin red.
@@ -90,5 +91,74 @@ void main() {
             ),
       ),
     );
+  });
+
+  test('listar envía desde con zona y antes_de, y lee la página', () async {
+    final adaptador = _AdaptadorFijo(200, {
+      'recorridos': [
+        {
+          'id': 9,
+          'fecha_inicio': '2026-09-27T22:30:00Z',
+          'fecha_fin': '2026-09-27T22:48:00Z',
+          'distancia_m': 7400.0,
+          'duracion_s': 1080,
+          'velocidad_maxima_kmh': 62.0,
+          'velocidad_promedio_kmh': 24.0,
+        },
+      ],
+      'siguiente': 9,
+      'resumen': null,
+    });
+
+    final pagina = await _repositorio(
+      adaptador,
+    ).listar(desde: DateTime.utc(2026, 9, 21, 4), antesDe: 12);
+
+    final consulta = adaptador.ultimaPeticion!.queryParameters;
+    expect(adaptador.ultimaPeticion!.path, '/recorridos');
+    expect(consulta['desde'], '2026-09-21T04:00:00.000Z');
+    expect(consulta['antes_de'], 12);
+    expect(consulta['limite'], 20);
+    expect(pagina.siguiente, 9);
+    expect(pagina.resumen, isNull);
+    final recorrido = pagina.recorridos.single;
+    expect(recorrido.distanciaM, 7400);
+    expect(recorrido.salida.isUtc, isFalse, reason: 'en la zona del teléfono');
+    expect(recorrido.llegada.difference(recorrido.salida).inMinutes, 18);
+  });
+
+  test('listar sin desde ni cursor pide todos y lee el resumen', () async {
+    final adaptador = _AdaptadorFijo(200, {
+      'recorridos': <Object>[],
+      'siguiente': null,
+      'resumen': {'viajes': 0, 'distancia_m': 0, 'duracion_s': 0},
+    });
+
+    final pagina = await _repositorio(adaptador).listar();
+
+    final consulta = adaptador.ultimaPeticion!.queryParameters;
+    expect(consulta.containsKey('desde'), isFalse);
+    expect(consulta.containsKey('antes_de'), isFalse);
+    expect(pagina.resumen!.viajes, 0);
+    expect(pagina.recorridos, isEmpty);
+  });
+
+  test('obtener con 404 llega como ErrorApi', () async {
+    final adaptador = _AdaptadorFijo(404, {
+      'detail': 'Recorrido no encontrado',
+    });
+    await expectLater(
+      _repositorio(adaptador).obtener(3),
+      throwsA(isA<ErrorApi>().having((e) => e.codigo, 'codigo', 404)),
+    );
+    expect(adaptador.ultimaPeticion!.path, '/recorridos/3');
+  });
+
+  test('PeriodoHistorial', () {
+    expect(PeriodoHistorial.values.map((p) => p.texto), [
+      'Esta semana',
+      'Este mes',
+      'Todos',
+    ]);
   });
 }

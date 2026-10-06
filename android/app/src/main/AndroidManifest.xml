@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!-- Notificación fija del viaje en curso (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Avisos de eventos de riesgo (HU-14) -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <application
         android:label="drivesense"

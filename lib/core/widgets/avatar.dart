@@ -4,12 +4,20 @@ import '../design/design.dart';
 
 /// Círculo oscuro con las iniciales del usuario (docs/diseno.md, 7.1).
 class Avatar extends StatelessWidget {
-  const Avatar({super.key, required this.nombre, this.grande = false});
+  const Avatar({
+    super.key,
+    required this.nombre,
+    this.grande = false,
+    this.sobreOscuro = false,
+  });
 
   final String nombre;
 
   /// 64 dp (Perfil) en vez de 44 (cabecera de Inicio).
   final bool grande;
+
+  /// Sobre el encabezado oscuro de Inicio: fondo `encabezadoBorde`.
+  final bool sobreOscuro;
 
   /// Primera letra de las dos primeras palabras: "Ana María Pérez" → "AM".
   static String iniciales(String nombre) => nombre
@@ -31,7 +39,7 @@ class Avatar extends StatelessWidget {
       height: lado,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: colores.encabezadoFondo,
+        color: sobreOscuro ? colores.encabezadoBorde : colores.encabezadoFondo,
         shape: BoxShape.circle,
       ),
       child: Text(

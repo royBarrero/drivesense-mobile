@@ -169,16 +169,25 @@ class AcumuladorRecorrido {
     'ultima_lectura': _ultimaLectura?.toJson(),
   };
 
-  /// Distancia en metros entre dos lecturas (fórmula de haversine).
-  static double distanciaEntre(Lectura a, Lectura b) {
+  /// Distancia en metros entre dos lecturas.
+  static double distanciaEntre(Lectura a, Lectura b) =>
+      distanciaCoordenadas(a.latitud, a.longitud, b.latitud, b.longitud);
+
+  /// Distancia en metros entre dos coordenadas (fórmula de haversine).
+  static double distanciaCoordenadas(
+    double latitudA,
+    double longitudA,
+    double latitudB,
+    double longitudB,
+  ) {
     const radioTierraM = 6371000.0;
     double rad(double grados) => grados * math.pi / 180;
-    final dLat = rad(b.latitud - a.latitud);
-    final dLon = rad(b.longitud - a.longitud);
+    final dLat = rad(latitudB - latitudA);
+    final dLon = rad(longitudB - longitudA);
     final h =
         math.pow(math.sin(dLat / 2), 2) +
-        math.cos(rad(a.latitud)) *
-            math.cos(rad(b.latitud)) *
+        math.cos(rad(latitudA)) *
+            math.cos(rad(latitudB)) *
             math.pow(math.sin(dLon / 2), 2);
     return 2 * radioTierraM * math.asin(math.sqrt(h));
   }

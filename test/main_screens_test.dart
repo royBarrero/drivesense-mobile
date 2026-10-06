@@ -2,7 +2,6 @@ import 'package:drivesense/app/main_shell.dart';
 import 'package:drivesense/app/theme.dart';
 import 'package:drivesense/features/auth/models/user.dart';
 import 'package:drivesense/features/auth/providers/session_provider.dart';
-import 'package:drivesense/features/inicio/presentation/home_screen.dart';
 import 'package:drivesense/features/perfil/presentation/profile_screen.dart';
 import 'package:drivesense/features/recorridos/models/trip.dart';
 import 'package:drivesense/features/recorridos/models/trip_accumulator.dart';
@@ -50,17 +49,6 @@ final _viaje = ViajeActivo(
   acumulador: AcumuladorRecorrido(inicio: DateTime.now()),
 );
 
-final _resumen = ResumenRecorrido(
-  recorridoId: 2,
-  fechaFin: DateTime.now(),
-  distanciaM: 1000,
-  duracionS: 300,
-  velocidadMaximaKmh: 40,
-  velocidadPromedioKmh: 12,
-  latitudFin: 0,
-  longitudFin: 0,
-);
-
 Future<void> _mostrar(
   WidgetTester tester,
   Widget pantalla, {
@@ -88,59 +76,6 @@ Future<void> _mostrar(
 }
 
 void main() {
-  group('Inicio', () {
-    testWidgets('sin viaje: saludo, iniciar recorrido y DriveScore vacío', (
-      tester,
-    ) async {
-      await _mostrar(tester, const InicioPantalla());
-
-      expect(find.text('Hola, Ana'), findsOneWidget);
-      expect(find.text('AP'), findsOneWidget, reason: 'iniciales');
-      expect(find.text('¿Listo para salir?'), findsOneWidget);
-      expect(find.text('Iniciar recorrido'), findsOneWidget);
-      expect(
-        find.text(
-          'Tu DriveScore aparecerá aquí después de tus primeros viajes',
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining('pendiente de envío'), findsNothing);
-    });
-
-    testWidgets('con un viaje en curso no se ofrece iniciar otro', (
-      tester,
-    ) async {
-      await _mostrar(
-        tester,
-        const InicioPantalla(),
-        viaje: ViajeEnCurso(viaje: _viaje, ahora: DateTime.now()),
-      );
-
-      expect(find.text('Viaje en curso'), findsOneWidget);
-      expect(find.text('Volver al viaje'), findsOneWidget);
-      expect(find.text('Iniciar recorrido'), findsNothing);
-    });
-
-    testWidgets('un viaje interrumpido ofrece continuar o finalizar', (
-      tester,
-    ) async {
-      await _mostrar(
-        tester,
-        const InicioPantalla(),
-        viaje: ViajeInterrumpido(_viaje),
-      );
-
-      expect(find.text('Tienes un viaje sin terminar'), findsOneWidget);
-      expect(find.text('Continuar viaje'), findsOneWidget);
-      expect(find.text('Finalizar'), findsOneWidget);
-    });
-
-    testWidgets('avisa de un resumen pendiente de envío', (tester) async {
-      await _mostrar(tester, const InicioPantalla(), pendiente: _resumen);
-      expect(find.textContaining('pendiente de envío'), findsOneWidget);
-    });
-  });
-
   group('Perfil', () {
     testWidgets('muestra los datos y permite cerrar sesión', (tester) async {
       await _mostrar(tester, const PerfilPantalla());

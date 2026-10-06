@@ -18,7 +18,9 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
     required this.numeroGrande,
     required this.telemetria,
     required this.puntaje,
+    required this.puntajeAnillo,
     required this.numeroMetrica,
+    required this.numeroLista,
     required this.tituloHero,
     required this.tituloGrande,
     required this.titulo,
@@ -29,6 +31,9 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
     required this.cuerpo,
     required this.cuerpoPequeno,
     required this.boton,
+    required this.botonGrande,
+    required this.saludo,
+    required this.nombreSaludo,
     required this.etiquetaCampo,
     required this.ayuda,
     required this.etiqueta,
@@ -41,7 +46,11 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
   final TextStyle numeroGrande;
   final TextStyle telemetria;
   final TextStyle puntaje;
+
+  /// DriveScore dentro del anillo del resumen (HU-15).
+  final TextStyle puntajeAnillo;
   final TextStyle numeroMetrica;
+  final TextStyle numeroLista;
 
   // Plus Jakarta Sans: interfaz
   final TextStyle tituloHero;
@@ -54,6 +63,13 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
   final TextStyle cuerpo;
   final TextStyle cuerpoPequeno;
   final TextStyle boton;
+
+  /// Botón flotante de Inicio.
+  final TextStyle botonGrande;
+
+  /// "Buenas tardes," y el nombre del encabezado de Inicio.
+  final TextStyle saludo;
+  final TextStyle nombreSaludo;
   final TextStyle etiquetaCampo;
   final TextStyle ayuda;
 
@@ -98,10 +114,22 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
       fontWeight: FontWeight.w700,
       height: 1.1,
     ),
+    puntajeAnillo: TextStyle(
+      fontFamily: Fuentes.numeros,
+      fontSize: 48,
+      fontWeight: FontWeight.w700,
+      height: 1.0,
+    ),
     numeroMetrica: TextStyle(
       fontFamily: Fuentes.numeros,
       fontSize: 18,
       fontWeight: FontWeight.w500,
+    ),
+    numeroLista: TextStyle(
+      fontFamily: Fuentes.numeros,
+      fontSize: 22,
+      fontWeight: FontWeight.w700,
+      height: 1.1,
     ),
     tituloHero: TextStyle(
       fontFamily: Fuentes.interfaz,
@@ -141,19 +169,36 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
     cuerpo: TextStyle(
       fontFamily: Fuentes.interfaz,
       fontSize: 14,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w500,
       height: 1.5,
     ),
     cuerpoPequeno: TextStyle(
       fontFamily: Fuentes.interfaz,
       fontSize: 13,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w500,
       height: 1.5,
     ),
     boton: TextStyle(
       fontFamily: Fuentes.interfaz,
       fontSize: 16,
       fontWeight: FontWeight.w600,
+    ),
+    botonGrande: TextStyle(
+      fontFamily: Fuentes.interfaz,
+      fontSize: 20,
+      fontWeight: FontWeight.w800,
+    ),
+    saludo: TextStyle(
+      fontFamily: Fuentes.interfaz,
+      fontSize: 17,
+      fontWeight: FontWeight.w500,
+      height: 1.3,
+    ),
+    nombreSaludo: TextStyle(
+      fontFamily: Fuentes.interfaz,
+      fontSize: 34,
+      fontWeight: FontWeight.w800,
+      height: 1.1,
     ),
     etiquetaCampo: TextStyle(
       fontFamily: Fuentes.interfaz,
@@ -163,7 +208,7 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
     ayuda: TextStyle(
       fontFamily: Fuentes.interfaz,
       fontSize: 12,
-      fontWeight: FontWeight.w400,
+      fontWeight: FontWeight.w500,
       height: 1.4,
     ),
     etiqueta: TextStyle(
@@ -201,7 +246,9 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
     TextStyle? tituloGrande,
     TextStyle? telemetria,
     TextStyle? puntaje,
+    TextStyle? puntajeAnillo,
     TextStyle? numeroMetrica,
+    TextStyle? numeroLista,
     TextStyle? tituloHero,
     TextStyle? titulo,
     TextStyle? tituloTarjeta,
@@ -211,6 +258,9 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
     TextStyle? cuerpo,
     TextStyle? cuerpoPequeno,
     TextStyle? boton,
+    TextStyle? botonGrande,
+    TextStyle? saludo,
+    TextStyle? nombreSaludo,
     TextStyle? etiquetaCampo,
     TextStyle? ayuda,
     TextStyle? etiqueta,
@@ -223,7 +273,9 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
       tituloGrande: tituloGrande ?? this.tituloGrande,
       telemetria: telemetria ?? this.telemetria,
       puntaje: puntaje ?? this.puntaje,
+      puntajeAnillo: puntajeAnillo ?? this.puntajeAnillo,
       numeroMetrica: numeroMetrica ?? this.numeroMetrica,
+      numeroLista: numeroLista ?? this.numeroLista,
       tituloHero: tituloHero ?? this.tituloHero,
       titulo: titulo ?? this.titulo,
       tituloTarjeta: tituloTarjeta ?? this.tituloTarjeta,
@@ -233,6 +285,9 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
       cuerpo: cuerpo ?? this.cuerpo,
       cuerpoPequeno: cuerpoPequeno ?? this.cuerpoPequeno,
       boton: boton ?? this.boton,
+      botonGrande: botonGrande ?? this.botonGrande,
+      saludo: saludo ?? this.saludo,
+      nombreSaludo: nombreSaludo ?? this.nombreSaludo,
       etiquetaCampo: etiquetaCampo ?? this.etiquetaCampo,
       ayuda: ayuda ?? this.ayuda,
       etiqueta: etiqueta ?? this.etiqueta,
@@ -251,7 +306,9 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
       tituloGrande: l(tituloGrande, other.tituloGrande),
       telemetria: l(telemetria, other.telemetria),
       puntaje: l(puntaje, other.puntaje),
+      puntajeAnillo: l(puntajeAnillo, other.puntajeAnillo),
       numeroMetrica: l(numeroMetrica, other.numeroMetrica),
+      numeroLista: l(numeroLista, other.numeroLista),
       tituloHero: l(tituloHero, other.tituloHero),
       titulo: l(titulo, other.titulo),
       tituloTarjeta: l(tituloTarjeta, other.tituloTarjeta),
@@ -261,6 +318,9 @@ class TipografiaDriveSense extends ThemeExtension<TipografiaDriveSense> {
       cuerpo: l(cuerpo, other.cuerpo),
       cuerpoPequeno: l(cuerpoPequeno, other.cuerpoPequeno),
       boton: l(boton, other.boton),
+      botonGrande: l(botonGrande, other.botonGrande),
+      saludo: l(saludo, other.saludo),
+      nombreSaludo: l(nombreSaludo, other.nombreSaludo),
       etiquetaCampo: l(etiquetaCampo, other.etiquetaCampo),
       ayuda: l(ayuda, other.ayuda),
       etiqueta: l(etiqueta, other.etiqueta),
