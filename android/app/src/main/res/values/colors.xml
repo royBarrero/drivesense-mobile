@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondo del ícono de la app (caja del logo, `encabezadoSuperficie`) -->
+    <color name="ic_launcher_fondo">#12171F</color>
+    <!-- Fondo mientras arranca la app: el de la pantalla de carga (`encabezadoFondo`) -->
+    <color name="arranque_fondo">#1E252D</color>
+</resources>

@@ -14,6 +14,7 @@ import '../features/recorridos/presentation/trip_detail_screen.dart';
 import '../features/recorridos/presentation/trip_map_screen.dart';
 import '../features/recorridos/presentation/trip_summary_screen.dart';
 import '../features/recorridos/presentation/trips_screen.dart';
+import '../features/recorridos/providers/trip_provider.dart';
 import 'main_shell.dart';
 import 'placeholder_screens.dart';
 
@@ -158,6 +159,17 @@ final rutasProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Viaje finalizado solo (el auto quedó detenido): se muestra el resumen desde
+  // cualquier pantalla; al volver a la app (o tocar la notificación) ya está ahí
+  ref.listen(viajeProvider, (anterior, siguiente) {
+    final terminado = siguiente.value;
+    if (terminado is ViajeTerminado &&
+        terminado.automatico &&
+        anterior?.value is! ViajeTerminado) {
+      router.go(Rutas.resumenRecorrido);
+    }
+  });
 
   ref.onDispose(() {
     router.dispose();

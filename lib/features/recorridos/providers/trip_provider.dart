@@ -14,6 +14,7 @@ import '../../telemetria/models/live_alerts.dart';
 import '../../telemetria/providers/alert_sound_provider.dart';
 import '../../telemetria/providers/calibration_mode_provider.dart';
 import '../data/location_service.dart';
+import '../data/trip_finished_alert.dart';
 import '../data/trip_local_storage.dart';
 import '../data/trips_repository.dart';
 import '../models/trip.dart';
@@ -95,6 +96,7 @@ class ViajeTerminado extends EstadoViaje {
     this.mensaje,
     this.archivoCalibracion,
     this.puntaje,
+    this.automatico = false,
   });
 
   final ResumenRecorrido resumen;
@@ -109,6 +111,10 @@ class ViajeTerminado extends EstadoViaje {
 
   /// CSV del modo calibración, para compartirlo (solo en desarrollo).
   final String? archivoCalibracion;
+
+  /// Lo finalizó la app al quedar el auto detenido
+  /// ([UmbralesRecorrido.detenidoParaFinalizar]), no el usuario.
+  final bool automatico;
 }
 
 /// Recorrido del conductor (HU-04 y HU-05), con la captura de sensores (HU-07)
@@ -121,6 +127,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
   StreamSubscription<bool>? _cambiosGps;
   Timer? _reloj;
   int _segundos = 0;
+  bool _finalizando = false;
   DateTime _ultimaLecturaRecibida = DateTime.now();
   Lectura? _ultimaLecturaGps;
 
@@ -223,6 +230,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
       // Un exceso de velocidad que quedó abierto termina con lo acumulado; si
       // se sigue sobre el límite, empieza un tramo nuevo
       actual.viaje.cerrarEventosEnCurso();
+      actual.viaje.acumulador.reiniciarDetencion(DateTime.now());
       _guardar(actual.viaje);
       _comenzarSeguimiento(actual.viaje, nuevo: false);
     }
@@ -232,8 +240,19 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
   ///
   /// En curso: llega a la hora actual. Interrumpido: a la hora y el lugar del
   /// último punto registrado, para no alargar el viaje con el tiempo que la app
-  /// estuvo cerrada.
-  Future<void> finalizar() async {
+  /// estuvo cerrada. [automatico] (el auto quedó detenido): llega a la hora en
+  /// que se detuvo, sin el tiempo de espera.
+  Future<void> finalizar({bool automatico = false}) async {
+    if (_finalizando) return;
+    _finalizando = true;
+    try {
+      await _finalizar(automatico: automatico);
+    } finally {
+      _finalizando = false;
+    }
+  }
+
+  Future<void> _finalizar({required bool automatico}) async {
     final usuarioId = _usuarioId;
     final actual = state.value;
     if (usuarioId == null) return;
@@ -244,7 +263,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
       case ViajeEnCurso():
         viaje = actual.viaje;
         interrumpido = false;
-      case ViajeInterrumpido():
+      case ViajeInterrumpido() when !automatico:
         viaje = actual.viaje;
         interrumpido = true;
       default:
@@ -253,7 +272,11 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
 
     // Sin ninguna lectura precisa (o sin datos en el teléfono) se pide la posición
     final llegada = viaje.acumulador.ultimaLectura ?? await _posicionActual();
-    final fechaFin = interrumpido ? llegada.fecha : DateTime.now();
+    final fechaFin = automatico
+        ? viaje.acumulador.detenidoDesde
+        : interrumpido
+        ? llegada.fecha
+        : DateTime.now();
     // Sin guardar: el viaje se borra del teléfono enseguida, y un guardado sin
     // esperar podría escribirse después y hacerlo reaparecer
     viaje.cerrarEventosEnCurso();
@@ -264,11 +287,13 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
       viaje,
       fechaFin: fechaFin,
       llegada: llegada,
+      recortar: automatico,
     );
     // Primero queda guardado como pendiente: si el envío falla, se reintenta solo
     final pendientes = ref.read(resumenPendienteProvider.notifier);
     await pendientes.guardar(resumen);
     await _almacen.borrarViaje(usuarioId);
+    if (automatico) ref.read(avisoViajeFinalizadoProvider).notificar();
     final envio = await pendientes.enviar();
     if (!ref.mounted) return;
 
@@ -277,17 +302,20 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
         resumen,
         envio!,
         archivoCalibracion: archivoCalibracion,
+        automatico: automatico,
       ),
       ResultadoEnvio.rechazado => ViajeTerminado(
         resumen,
         ResultadoViaje.rechazado,
         mensaje: envio!.mensaje,
         archivoCalibracion: archivoCalibracion,
+        automatico: automatico,
       ),
       ResultadoEnvio.pendiente || null => ViajeTerminado(
         resumen,
         ResultadoViaje.pendiente,
         archivoCalibracion: archivoCalibracion,
+        automatico: automatico,
       ),
     });
   }
@@ -306,6 +334,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
         actual.resumen,
         envio,
         archivoCalibracion: actual.archivoCalibracion,
+        automatico: actual.automatico,
       ),
     );
   }
@@ -314,6 +343,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
     ResumenRecorrido resumen,
     Envio envio, {
     String? archivoCalibracion,
+    bool automatico = false,
   }) => ViajeTerminado(
     resumen,
     envio.recorrido?.estado == EstadoRecorrido.descartado
@@ -321,6 +351,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
         : ResultadoViaje.finalizado,
     archivoCalibracion: archivoCalibracion,
     puntaje: envio.puntaje,
+    automatico: automatico,
   );
 
   /// Sale de la pantalla de resumen.
@@ -370,7 +401,24 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
       _segundos++;
       if (_segundos % _guardarCada == 0) _guardar(viaje);
       _publicar(viaje);
+      // Viaje olvidado: el auto lleva detenido el tiempo límite
+      final detenido = DateTime.now().difference(
+        viaje.acumulador.detenidoDesde,
+      );
+      if (detenido >= UmbralesRecorrido.detenidoParaFinalizar) {
+        unawaited(_finalizarSolo());
+      }
     });
+  }
+
+  /// Finalización automática: sin pantalla que muestre un error, uno al pedir
+  /// la posición se ignora (el reloj lo reintenta al segundo siguiente).
+  Future<void> _finalizarSolo() async {
+    try {
+      await finalizar(automatico: true);
+    } on ErrorRecorrido {
+      // Sigue en curso
+    }
   }
 
   void _suscribirLecturas(ViajeActivo viaje) {

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: la pantalla de arranque la dibuja el sistema; aquí se le da el fondo
+     oscuro de la pantalla de carga y el velocímetro al centro -->
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/arranque_fondo</item>
+        <!-- Solo el velocímetro, sin la caja del ícono: algunos launchers (Samsung) la
+             ponen sobre un recuadro blanco -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_frente</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/arranque_fondo</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/arranque_fondo</item>
+    </style>
+</resources>

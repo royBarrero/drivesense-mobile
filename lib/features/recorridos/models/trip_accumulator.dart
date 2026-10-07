@@ -59,6 +59,19 @@ abstract final class UmbralesRecorrido {
 
   /// Límite del backend para las velocidades.
   static const velocidadMaximaApiKmh = 300.0;
+
+  /// A esta velocidad o más el auto se está moviendo (reinicia la detención).
+  static const velocidadMovimientoKmh = 8.0;
+
+  /// Alejarse más que esto del punto donde se detuvo también cuenta como
+  /// moverse (un atasco avanza lento, pero avanza).
+  static const radioDetencionM = 40.0;
+
+  /// Detenido este tiempo seguido, el viaje se finaliza solo. Para probar sin
+  /// esperar: `--dart-define=MINUTOS_DETENIDO=1`.
+  static const detenidoParaFinalizar = Duration(
+    minutes: int.fromEnvironment('MINUTOS_DETENIDO', defaultValue: 3),
+  );
 }
 
 /// Acumula distancia y velocidad máxima de un recorrido a partir de las lecturas del GPS.
@@ -91,9 +104,25 @@ class AcumuladorRecorrido {
   Lectura? _referencia;
   int _saltosSeguidos = 0;
 
+  /// Dónde y desde cuándo el auto está detenido. Solo en memoria: un viaje
+  /// interrumpido lo reinicia al continuar.
+  Lectura? _anclaDetencion;
+  DateTime? _detenidoDesde;
+
   double get distanciaM => _distanciaM;
   double get velocidadMaximaKmh => _velocidadMaximaKmh;
   Lectura? get ultimaLectura => _ultimaLectura;
+
+  /// Hora del último movimiento (o del inicio): desde entonces el auto está
+  /// detenido. Sin lecturas (garaje, sin señal) no cambia.
+  DateTime get detenidoDesde => _detenidoDesde ?? inicio;
+
+  /// Al continuar un viaje interrumpido la detención cuenta desde [ahora]: el
+  /// tiempo con la app cerrada no la acerca a finalizarse sola.
+  void reiniciarDetencion(DateTime ahora) {
+    _anclaDetencion = null;
+    _detenidoDesde = ahora;
+  }
 
   /// Procesa una lectura; devuelve `false` si se descartó.
   bool agregar(Lectura lectura) {
@@ -136,6 +165,13 @@ class AcumuladorRecorrido {
 
   void _aceptar(Lectura lectura) {
     _ultimaLectura = lectura;
+    final ancla = _anclaDetencion;
+    if (ancla == null ||
+        lectura.velocidadKmh >= UmbralesRecorrido.velocidadMovimientoKmh ||
+        distanciaEntre(ancla, lectura) > UmbralesRecorrido.radioDetencionM) {
+      _anclaDetencion = lectura;
+      _detenidoDesde = lectura.fecha;
+    }
     _velocidadMaximaKmh = math.max(
       _velocidadMaximaKmh,
       math.min(lectura.velocidadKmh, UmbralesRecorrido.velocidadMaximaApiKmh),

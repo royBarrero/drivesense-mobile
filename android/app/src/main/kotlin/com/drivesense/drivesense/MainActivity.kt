@@ -1,6 +1,11 @@
 package com.drivesense.drivesense
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -33,6 +38,15 @@ class MainActivity : FlutterActivity() {
                     "avisarEvento" -> {
                         vibrar()
                         if (llamada.argument<Boolean>("sonido") == true) sonar()
+                        resultado.success(null)
+                    }
+                    // Viaje finalizado solo porque el auto quedó detenido: el usuario
+                    // puede tener la pantalla apagada. Al tocarla se abre la app.
+                    "notificarViajeFinalizado" -> {
+                        notificar(
+                            llamada.argument<String>("titulo") ?: "",
+                            llamada.argument<String>("texto") ?: "",
+                        )
                         resultado.success(null)
                     }
                     else -> resultado.notImplemented()
@@ -83,7 +97,50 @@ class MainActivity : FlutterActivity() {
         Handler(Looper.getMainLooper()).postDelayed({ tono.release() }, DURACION_TONO_MS + 100L)
     }
 
+    private fun notificar(titulo: String, texto: String) {
+        val gestor = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            gestor.createNotificationChannel(
+                NotificationChannel(
+                    CANAL_AVISOS,
+                    "Avisos de viaje",
+                    NotificationManager.IMPORTANCE_HIGH,
+                ),
+            )
+        }
+        val abrir = Intent(this, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        val alTocar = PendingIntent.getActivity(
+            this,
+            0,
+            abrir,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val constructor = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, CANAL_AVISOS)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this).setPriority(Notification.PRIORITY_HIGH)
+        }
+        val notificacion = constructor
+            .setSmallIcon(R.drawable.ic_notificacion)
+            .setContentTitle(titulo)
+            .setContentText(texto)
+            .setStyle(Notification.BigTextStyle().bigText(texto))
+            .setContentIntent(alTocar)
+            .setAutoCancel(true)
+            .build()
+        // Sin el permiso de notificaciones (Android 13+) no se muestra: no es un error
+        try {
+            gestor.notify(ID_VIAJE_FINALIZADO, notificacion)
+        } catch (e: SecurityException) {
+            return
+        }
+    }
+
     private companion object {
+        const val CANAL_AVISOS = "avisos_viaje"
+        const val ID_VIAJE_FINALIZADO = 1001
         const val DURACION_VIBRACION_MS = 250L
         const val DURACION_TONO_MS = 150
         const val VOLUMEN_TONO = 80

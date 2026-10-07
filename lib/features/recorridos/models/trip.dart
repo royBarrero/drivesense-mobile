@@ -143,6 +143,7 @@ class ResumenRecorrido {
     ViajeActivo viaje, {
     required DateTime fechaFin,
     required Lectura llegada,
+    bool recortar = false,
   }) {
     // El backend exige fecha_fin > fecha_inicio (hora del servidor): cubre
     // un reloj del teléfono atrasado
@@ -159,9 +160,18 @@ class ResumenRecorrido {
       velocidadPromedioKmh: acumulador.velocidadPromedioKmh(duracion),
       latitudFin: llegada.latitud,
       longitudFin: llegada.longitud,
-      ruta: viaje.ruta.puntos,
+      // [recortar] (finalizado solo): el fin es cuando se detuvo y lo
+      // registrado después, con el auto estacionado, no es parte del viaje.
+      // Solo entonces: el fin sale del mismo reloj que los puntos (el GPS)
+      ruta: [
+        for (final punto in viaje.ruta.puntos)
+          if (!recortar || !punto.fecha.isAfter(fin)) punto,
+      ],
       // Ya cerrados al finalizar (un exceso abierto queda con lo acumulado)
-      eventos: List.of(viaje.eventos),
+      eventos: [
+        for (final evento in viaje.eventos)
+          if (!recortar || !evento.fecha.isAfter(fin)) evento,
+      ],
     );
   }
 

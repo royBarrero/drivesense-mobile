@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Frente del ícono adaptativo: el velocímetro del logo (LogoDriveSense y el favicon
+     del panel). Lienzo de 108 dp; el dibujo queda dentro del círculo seguro de 66 dp,
+     que es lo visible con cualquier máscara. Coordenadas del favicon (32×32),
+     escaladas ×2,6 y centradas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="2.6"
+        android:scaleY="2.6"
+        android:translateX="12.4"
+        android:translateY="15.65">
+        <path
+            android:pathData="M8.2,21.5A9,9 0,1 1,23.8 21.5"
+            android:strokeColor="#34D399"
+            android:strokeWidth="2.4"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M16,17L19.9,12.4"
+            android:strokeColor="#34D399"
+            android:strokeWidth="2.4"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M14.4,17a1.6,1.6 0,1 0,3.2 0a1.6,1.6 0,1 0,-3.2 0"
+            android:fillColor="#34D399" />
+    </group>
+</vector>

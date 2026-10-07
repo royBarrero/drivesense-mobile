@@ -10,6 +10,7 @@ import '../../../core/widgets/illustration_painters.dart';
 import '../../../core/widgets/label.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../models/trip.dart';
+import '../models/trip_accumulator.dart';
 import '../models/trip_score.dart';
 import '../providers/trip_provider.dart';
 import 'trip_format.dart';
@@ -179,6 +180,10 @@ class _ResumenGuardado extends StatelessWidget {
                               velocidadPromedioKmh:
                                   resumen.velocidadPromedioKmh,
                             ),
+                            if (estado.automatico) ...[
+                              const SizedBox(height: Espacios.m),
+                              const _AvisoAutomatico(),
+                            ],
                             if (pendiente) ...[
                               const SizedBox(height: Espacios.l),
                               Padding(
@@ -639,6 +644,10 @@ class _ResumenNoGuardado extends StatelessWidget {
                               color: colores.textoSecundario,
                             ),
                           ),
+                          if (estado.automatico) ...[
+                            const SizedBox(height: Espacios.l),
+                            const _AvisoAutomatico(),
+                          ],
                           const SizedBox(height: Espacios.xl),
                           _Fila(
                             izquierda: MetricaTintada(
@@ -689,6 +698,44 @@ class _Fila extends StatelessWidget {
           Expanded(child: izquierda),
           const SizedBox(width: Espacios.s),
           Expanded(child: derecha),
+        ],
+      ),
+    );
+  }
+}
+
+/// El viaje lo finalizó la app porque el auto quedó detenido.
+class _AvisoAutomatico extends StatelessWidget {
+  const _AvisoAutomatico();
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    final minutos = UmbralesRecorrido.detenidoParaFinalizar.inMinutes;
+    return Container(
+      padding: const EdgeInsets.all(Espacios.s),
+      decoration: BoxDecoration(
+        color: colores.tinteAdvertencia,
+        borderRadius: BorderRadius.circular(Radios.campo),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.local_parking_rounded,
+            size: Medidas.icono,
+            color: colores.advertencia,
+          ),
+          const SizedBox(width: Espacios.xs),
+          Expanded(
+            child: Text(
+              'Lo finalizamos automáticamente: estuviste detenido $minutos '
+              'min. El viaje termina donde te detuviste.',
+              style: context.tipografia.cuerpoPequeno.copyWith(
+                color: colores.textoPrincipal,
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:drivesense/features/recorridos/models/trip.dart';
 import 'package:drivesense/features/recorridos/models/trip_accumulator.dart';
 import 'package:drivesense/features/recorridos/presentation/trip_format.dart';
+import 'package:drivesense/features/telemetria/models/event_detector.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // ~0,000009° de latitud ≈ 1 m
@@ -108,7 +109,117 @@ void main() {
     });
   });
 
+  group('Detención (viaje olvidado)', () {
+    test('sin lecturas cuenta desde el inicio', () {
+      final acumulador = AcumuladorRecorrido(inicio: _inicio);
+      expect(acumulador.detenidoDesde, _inicio);
+    });
+
+    test('moverse a la velocidad mínima reinicia la detención', () {
+      final acumulador = AcumuladorRecorrido(inicio: _inicio);
+      for (var s = 0; s <= 10; s++) {
+        acumulador.agregar(_lectura(s * 10.0, s)); // 36 km/h
+      }
+      expect(
+        acumulador.detenidoDesde,
+        _inicio.add(const Duration(seconds: 10)),
+      );
+    });
+
+    test('quieto o con temblor del GPS no la reinicia', () {
+      final acumulador = AcumuladorRecorrido(inicio: _inicio);
+      acumulador.agregar(_lectura(0, 0));
+      for (var s = 1; s <= 300; s++) {
+        acumulador.agregar(
+          _lectura(s.isEven ? 3 : 0, s, velocidadKmh: s.isEven ? 2 : 0),
+        );
+      }
+      expect(acumulador.detenidoDesde, _inicio);
+    });
+
+    test('avanzar lento más allá del radio la reinicia (atasco)', () {
+      final acumulador = AcumuladorRecorrido(inicio: _inicio);
+      acumulador.agregar(_lectura(0, 0, velocidadKmh: 0));
+      // 4 km/h ≈ 1,1 m/s: a los 40 s ya pasó los 40 m
+      for (var s = 1; s <= 45; s++) {
+        acumulador.agregar(_lectura(s * 1.1, s, velocidadKmh: 4));
+      }
+      expect(acumulador.detenidoDesde.isAfter(_inicio), isTrue);
+      expect(
+        acumulador.detenidoDesde.isAfter(
+          _inicio.add(const Duration(seconds: 30)),
+        ),
+        isTrue,
+      );
+    });
+
+    test('al continuar un viaje interrumpido cuenta desde ese momento', () {
+      final acumulador = AcumuladorRecorrido(inicio: _inicio)
+        ..agregar(_lectura(0, 0));
+      final restaurado = AcumuladorRecorrido.fromJson(acumulador.toJson());
+      expect(restaurado.detenidoDesde, _inicio);
+      final ahora = _inicio.add(const Duration(hours: 2));
+      restaurado.reiniciarDetencion(ahora);
+      expect(restaurado.detenidoDesde, ahora);
+      // Lecturas quieto después de continuar: sigue contando desde ahí
+      restaurado.agregar(_lectura(0, 7201, velocidadKmh: 0));
+      restaurado.agregar(_lectura(0, 7300, velocidadKmh: 0));
+      expect(
+        restaurado.detenidoDesde,
+        _inicio.add(const Duration(seconds: 7201)),
+      );
+    });
+  });
+
   group('ResumenRecorrido', () {
+    test(
+      'al finalizar solo descarta la ruta y los eventos posteriores al fin',
+      () {
+        final acumulador = AcumuladorRecorrido(inicio: _inicio);
+        final viaje = ViajeActivo(
+          recorridoId: 1,
+          fechaInicioServidor: _inicio,
+          acumulador: acumulador,
+        );
+        for (var s = 0; s <= 600; s += 10) {
+          final lectura = _lectura(s < 300 ? s * 10.0 : 3000, s);
+          acumulador.agregar(lectura);
+          viaje.ruta.agregar(lectura);
+        }
+        EventoRiesgo evento(int segundos) => EventoRiesgo(
+          tipo: TipoEvento.values.first,
+          fecha: _inicio.add(Duration(seconds: segundos)),
+          intensidad: 4,
+          latitud: -17.78,
+          longitud: -63.18,
+          velocidadPreviaMs: 10,
+        );
+        viaje.registrarEvento(evento(100));
+        viaje.registrarEvento(evento(500));
+        final fin = _inicio.add(const Duration(seconds: 300));
+
+        final recortado = ResumenRecorrido.desde(
+          viaje,
+          fechaFin: fin,
+          llegada: acumulador.ultimaLectura!,
+          recortar: true,
+        );
+        expect(recortado.ruta!.every((p) => !p.fecha.isAfter(fin)), isTrue);
+        expect(recortado.ruta!.last.fecha, fin);
+        expect(recortado.eventos, hasLength(1));
+        expect(recortado.duracionS, 300);
+
+        // Al finalizar a mano no se recorta nada
+        final completo = ResumenRecorrido.desde(
+          viaje,
+          fechaFin: fin,
+          llegada: acumulador.ultimaLectura!,
+        );
+        expect(completo.ruta!.length, greaterThan(recortado.ruta!.length));
+        expect(completo.eventos, hasLength(2));
+      },
+    );
+
     test('la fecha de fin nunca queda antes del inicio del servidor', () {
       final acumulador = AcumuladorRecorrido(inicio: _inicio);
       acumulador.agregar(_lectura(0, 0));
