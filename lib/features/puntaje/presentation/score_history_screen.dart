@@ -14,6 +14,7 @@ import '../../recorridos/presentation/widgets/score_breakdown.dart';
 import '../models/score_history.dart';
 import '../providers/score_history_provider.dart';
 import 'widgets/score_chart.dart';
+import 'widgets/score_screen_parts.dart';
 import 'widgets/trend_badge.dart';
 
 /// "Mi DriveScore" (HU-17, diseño 2): promedio del periodo con su tendencia y
@@ -34,7 +35,6 @@ class _MiDriveScorePantallaState extends ConsumerState<MiDriveScorePantalla> {
   @override
   Widget build(BuildContext context) {
     final colores = context.colores;
-    final tipografia = context.tipografia;
     final estado = ref.watch(historicoPuntajeProvider(_periodo));
     final historico = estado.value;
     final conError = estado.hasError && !estado.isLoading;
@@ -71,6 +71,9 @@ class _MiDriveScorePantallaState extends ConsumerState<MiDriveScorePantalla> {
         _ViajesDestacados(mejor: historico.mejor, peor: historico.peor),
       ];
     }
+    // El comparativo (HU-20) tiene sus propios periodos: se ofrece siempre,
+    // también con el periodo vacío
+    final conComparar = !conError && historico != null && !estado.isLoading;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
@@ -86,22 +89,7 @@ class _MiDriveScorePantallaState extends ConsumerState<MiDriveScorePantalla> {
               MediaQuery.paddingOf(context).bottom + Espacios.l,
             ),
             children: [
-              Row(
-                children: [
-                  const _BotonVolver(),
-                  const SizedBox(width: Espacios.m),
-                  Expanded(
-                    child: Text(
-                      'Mi DriveScore',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tipografia.titulo.copyWith(
-                        color: colores.textoPrincipal,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              const CabeceraPuntaje(titulo: 'Mi DriveScore'),
               const SizedBox(height: Espacios.m),
               ChipsPeriodo(
                 opciones: PeriodoPuntaje.values,
@@ -111,6 +99,10 @@ class _MiDriveScorePantallaState extends ConsumerState<MiDriveScorePantalla> {
               ),
               const SizedBox(height: Espacios.m),
               ...contenido,
+              if (conComparar) ...const [
+                SizedBox(height: Espacios.m),
+                _TarjetaComparar(),
+              ],
             ],
           ),
         ),
@@ -118,43 +110,6 @@ class _MiDriveScorePantallaState extends ConsumerState<MiDriveScorePantalla> {
     );
   }
 }
-
-/// Volver en caja de 44 blanca; sin pantalla anterior, a Inicio.
-class _BotonVolver extends StatelessWidget {
-  const _BotonVolver();
-
-  @override
-  Widget build(BuildContext context) {
-    final colores = context.colores;
-    return Material(
-      color: colores.superficie,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Radios.campo),
-        side: BorderSide(color: colores.borde),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Radios.campo),
-        onTap: () =>
-            context.canPop() ? context.pop() : context.go(Rutas.inicio),
-        child: SizedBox.square(
-          dimension: Medidas.botonVolver,
-          child: Icon(
-            Icons.chevron_left_rounded,
-            size: Medidas.iconoNavegacion,
-            color: colores.textoPrincipal,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-BoxDecoration _tarjeta(ColoresDriveSense colores) => BoxDecoration(
-  color: colores.superficie,
-  borderRadius: BorderRadius.circular(Radios.tarjeta),
-  border: Border.all(color: colores.borde),
-  boxShadow: colores.sombraTarjeta,
-);
 
 /// Promedio, calificación, cantidad de viajes, tendencia y el gráfico.
 class _TarjetaPromedio extends StatelessWidget {
@@ -172,7 +127,7 @@ class _TarjetaPromedio extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(Espacios.l),
-      decoration: _tarjeta(colores),
+      decoration: decoracionTarjeta(colores),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -225,7 +180,7 @@ class _TarjetaCategorias extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(Espacios.l),
-      decoration: _tarjeta(context.colores),
+      decoration: decoracionTarjeta(context.colores),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -350,6 +305,74 @@ class _ViajeDestacado extends StatelessWidget {
   }
 }
 
+/// "Comparar periodos" (HU-20): abre el comparativo.
+class _TarjetaComparar extends StatelessWidget {
+  const _TarjetaComparar();
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    final tipografia = context.tipografia;
+    return Material(
+      color: colores.superficie,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radios.tarjeta),
+        side: BorderSide(color: colores.borde),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Radios.tarjeta),
+        onTap: () => context.push(Rutas.comparativo),
+        child: Padding(
+          padding: const EdgeInsets.all(Espacios.m),
+          child: Row(
+            children: [
+              Container(
+                width: Medidas.cajaIconoFila,
+                height: Medidas.cajaIconoFila,
+                decoration: BoxDecoration(
+                  color: colores.tintePrimario,
+                  borderRadius: BorderRadius.circular(Radios.cajaIcono),
+                ),
+                child: Icon(
+                  Icons.compare_arrows_rounded,
+                  size: Medidas.icono,
+                  color: colores.primarioOscuro,
+                ),
+              ),
+              const SizedBox(width: Espacios.m),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Comparar periodos',
+                      style: tipografia.subtitulo.copyWith(
+                        color: colores.textoPrincipal,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Esta semana o este mes frente al anterior',
+                      style: tipografia.cuerpoPequeno.copyWith(
+                        color: colores.textoSecundario,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: Medidas.iconoNavegacion,
+                color: colores.textoSecundario,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Periodo sin viajes: aviso y botones para ver los otros periodos.
 class _PeriodoVacio extends StatelessWidget {
   const _PeriodoVacio({required this.periodo, required this.alElegir});
@@ -363,7 +386,7 @@ class _PeriodoVacio extends StatelessWidget {
     final tipografia = context.tipografia;
     return Container(
       padding: const EdgeInsets.all(Espacios.xl),
-      decoration: _tarjeta(colores),
+      decoration: decoracionTarjeta(colores),
       child: Column(
         children: [
           Container(

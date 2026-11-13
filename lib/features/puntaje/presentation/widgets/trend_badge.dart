@@ -113,3 +113,50 @@ class DiferenciaCategoria extends StatelessWidget {
     );
   }
 }
+
+/// Cambio de una cifra del comparativo (HU-20): "▲ 2", "▼ 1,4" o "=". El
+/// símbolo sigue el signo de [diferencia] y el color, [mejora]: verde si
+/// mejoró, rojo si empeoró y gris si es igual o nulo (viajes y km, que no son
+/// mejores ni peores por sí mismos). [texto] es la diferencia ya formateada,
+/// sin signo.
+class CambioCifra extends StatelessWidget {
+  const CambioCifra({
+    super.key,
+    required this.diferencia,
+    required this.texto,
+    this.mejora,
+  });
+
+  final double diferencia;
+  final String texto;
+  final bool? mejora;
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    final simbolo = switch (diferencia) {
+      > 0 => '▲',
+      < 0 => '▼',
+      _ => '=',
+    };
+    final color = diferencia == 0
+        ? colores.textoSecundario
+        : switch (mejora) {
+            true => colores.primarioOscuro,
+            false => colores.textoPeligro,
+            null => colores.textoSecundario,
+          };
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: Medidas.cajaIcono),
+      child: Text(
+        diferencia == 0 ? simbolo : '$simbolo $texto',
+        textAlign: TextAlign.end,
+        maxLines: 1,
+        style: context.tipografia.cuerpoPequeno.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}

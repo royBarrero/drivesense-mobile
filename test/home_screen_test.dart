@@ -9,6 +9,7 @@ import 'package:drivesense/features/auth/providers/session_provider.dart';
 import 'package:drivesense/features/inicio/presentation/home_screen.dart';
 import 'package:drivesense/features/puntaje/data/score_repository.dart';
 import 'package:drivesense/features/puntaje/models/score_history.dart';
+import 'package:drivesense/features/recomendaciones/models/recommendation.dart';
 import 'package:drivesense/features/recorridos/data/trips_repository.dart';
 import 'package:drivesense/features/recorridos/models/trip.dart';
 import 'package:drivesense/features/recorridos/models/trip_accumulator.dart';
@@ -16,6 +17,7 @@ import 'package:drivesense/features/recorridos/models/trip_history.dart';
 import 'package:drivesense/features/recorridos/presentation/widgets/drive_score_ring.dart';
 import 'package:drivesense/features/recorridos/providers/pending_summary_provider.dart';
 import 'package:drivesense/features/recorridos/providers/trip_provider.dart';
+import 'package:drivesense/features/telemetria/models/event_detector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -67,12 +69,43 @@ class _PuntajeFalso extends PuntajeRepositorio {
   }
 }
 
-/// Historial sin red: la semana ([semana]) y el último viaje ([ultimo]).
+/// Historial sin red: la semana ([semana]), el último viaje ([ultimo]) y su
+/// consejo ([consejo], en el detalle; sin él, el detalle falla).
 class _RecorridosFalso extends RecorridosRepositorio {
-  _RecorridosFalso({required this.semana, this.ultimo}) : super(Dio());
+  _RecorridosFalso({required this.semana, this.ultimo, this.consejo})
+    : super(Dio());
 
   final ResumenPeriodo semana;
   final RecorridoHistorial? ultimo;
+  final Recomendacion? consejo;
+
+  @override
+  Future<RecorridoHistorial> obtener(int id) async {
+    final ultimo = this.ultimo;
+    final consejo = this.consejo;
+    if (ultimo == null || consejo == null) {
+      throw const ErrorApi(mensaje: 'Sin detalle', codigo: 500);
+    }
+    return RecorridoHistorial(
+      id: ultimo.id,
+      salida: ultimo.salida,
+      llegada: ultimo.llegada,
+      distanciaM: ultimo.distanciaM,
+      duracionS: ultimo.duracionS,
+      velocidadMaximaKmh: ultimo.velocidadMaximaKmh,
+      velocidadPromedioKmh: ultimo.velocidadPromedioKmh,
+      drivescore: ultimo.drivescore,
+      recomendacion: consejo,
+      // Inicio no debe mostrarlas (HU-19)
+      secundarias: const [
+        Recomendacion(
+          tipo: TipoEvento.giroAgresivo,
+          titulo: 'Gira con suavidad',
+          texto: 'Hubo un giro brusco.',
+        ),
+      ],
+    );
+  }
 
   @override
   Future<PaginaHistorial> listar({
@@ -141,6 +174,7 @@ Future<_PuntajeFalso> _mostrar(
   WidgetTester tester, {
   Future<HistoricoPuntaje> Function()? historico,
   RecorridoHistorial? ultimo,
+  Recomendacion? consejo,
   EstadoViaje viaje = const SinViaje(),
   ResumenRecorrido? pendiente,
   DateTime? ahora,
@@ -189,7 +223,7 @@ Future<_PuntajeFalso> _mostrar(
         resumenPendienteProvider.overrideWith(() => _PendienteFijo(pendiente)),
         puntajeRepositorioProvider.overrideWithValue(puntaje),
         recorridosRepositorioProvider.overrideWithValue(
-          _RecorridosFalso(semana: _semana, ultimo: ultimo),
+          _RecorridosFalso(semana: _semana, ultimo: ultimo, consejo: consejo),
         ),
       ],
       child: MaterialApp.router(theme: temaClaro(), routerConfig: router),
@@ -397,6 +431,49 @@ void main() {
       await _mostrar(tester, ultimo: _viaje(drivescore: null));
       expect(find.text('Último viaje · Hoy 08:10'), findsOneWidget);
       expect(_numerosEnUltimoViaje(), findsNothing);
+    });
+  });
+
+  group('Consejo (HU-18)', () {
+    testWidgets('el del último viaje; abre su detalle', (tester) async {
+      await _mostrar(
+        tester,
+        ultimo: _viaje(),
+        consejo: const Recomendacion(
+          tipo: TipoEvento.excesoVelocidad,
+          titulo: 'Baja la velocidad',
+          texto: 'Ibas sobre el límite durante 2 minutos.',
+        ),
+      );
+
+      expect(find.text('CONSEJO'), findsOneWidget);
+      expect(find.text('Baja la velocidad'), findsOneWidget);
+      expect(
+        find.text('Ibas sobre el límite durante 2 minutos.'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.speed), findsOneWidget);
+
+      // Solo la principal: las secundarias van en el resumen y el detalle
+      expect(find.text('Gira con suavidad'), findsNothing);
+      expect(find.text('TAMBIÉN PUEDES MEJORAR'), findsNothing);
+
+      await tester.tap(find.text('Baja la velocidad'));
+      await tester.pumpAndSettle();
+      expect(find.text('Detalle 9'), findsOneWidget);
+    });
+
+    testWidgets('sin recomendación o si el detalle falla, no aparece', (
+      tester,
+    ) async {
+      await _mostrar(tester, ultimo: _viaje());
+      expect(find.text('Último viaje · Hoy 08:10'), findsOneWidget);
+      expect(find.text('CONSEJO'), findsNothing);
+    });
+
+    testWidgets('sin viajes, no aparece', (tester) async {
+      await _mostrar(tester);
+      expect(find.text('CONSEJO'), findsNothing);
     });
   });
 

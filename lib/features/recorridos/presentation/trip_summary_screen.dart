@@ -9,6 +9,8 @@ import '../../../core/design/design.dart';
 import '../../../core/widgets/illustration_painters.dart';
 import '../../../core/widgets/label.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../recomendaciones/presentation/widgets/recommendation_card.dart';
+import '../../recomendaciones/presentation/widgets/secondary_recommendations.dart';
 import '../models/trip.dart';
 import '../models/trip_accumulator.dart';
 import '../models/trip_score.dart';
@@ -172,6 +174,17 @@ class _ResumenGuardado extends StatelessWidget {
                               sinEventos: resumen.eventos?.isEmpty ?? false,
                               alPresionar: alVerEnHistorial,
                             ),
+                            // HU-18: llega con el puntaje (pendiente → aún no)
+                            if (estado.recomendacion case final consejo?) ...[
+                              const SizedBox(height: Espacios.m),
+                              TarjetaConsejo(recomendacion: consejo),
+                            ],
+                            if (estado.secundarias.isNotEmpty) ...[
+                              const SizedBox(height: Espacios.s),
+                              ConsejosSecundarios(
+                                recomendaciones: estado.secundarias,
+                              ),
+                            ],
                             const SizedBox(height: Espacios.m),
                             FilaCifras(
                               distanciaM: resumen.distanciaM,

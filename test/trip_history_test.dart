@@ -3,6 +3,9 @@ import 'package:drivesense/app/theme.dart';
 import 'package:drivesense/core/api/api_error.dart';
 import 'package:drivesense/features/auth/models/user.dart';
 import 'package:drivesense/features/auth/providers/session_provider.dart';
+import 'package:drivesense/features/recomendaciones/models/recommendation.dart';
+import 'package:drivesense/features/recomendaciones/presentation/widgets/recommendation_card.dart';
+import 'package:drivesense/features/recomendaciones/presentation/widgets/secondary_recommendations.dart';
 import 'package:drivesense/features/recorridos/data/trips_repository.dart';
 import 'package:drivesense/features/recorridos/models/trip.dart';
 import 'package:drivesense/features/recorridos/models/trip_history.dart';
@@ -77,6 +80,8 @@ RecorridoHistorial _recorrido(
   Map<TipoEvento, int>? eventosPorTipo,
   List<PuntoRuta>? ruta,
   List<EventoRiesgo>? eventos,
+  Recomendacion? recomendacion,
+  List<Recomendacion> secundarias = const [],
 }) => RecorridoHistorial(
   id: id,
   salida: salida,
@@ -89,6 +94,8 @@ RecorridoHistorial _recorrido(
   eventosPorTipo: eventosPorTipo,
   ruta: ruta,
   eventos: eventos,
+  recomendacion: recomendacion,
+  secundarias: secundarias,
 );
 
 List<PuntoRuta> _ruta(DateTime salida) => [
@@ -374,7 +381,102 @@ void main() {
       expect(find.text('Vel. máx.'), findsOneWidget);
     });
 
-    testWidgets('empate: lo que más restó es la de mayor peso', (tester) async {
+    testWidgets('muestra el consejo del viaje (HU-18)', (tester) async {
+      final repositorio = _RepositorioFalso(
+        paginas: (_) => _vacia(),
+        detalle: (id) => _recorrido(
+          id,
+          tarde,
+          puntaje: const PuntajeViaje(
+            drivescore: 100,
+            frenadas: 100,
+            aceleraciones: 100,
+            giros: 100,
+            velocidad: 100,
+          ),
+          eventosPorTipo: _conteo(),
+          recomendacion: const Recomendacion(
+            tipo: null,
+            titulo: '¡Excelente viaje!',
+            texto: 'No tuviste eventos de riesgo.',
+          ),
+        ),
+      );
+      await _mostrar(
+        tester,
+        const DetalleViajePantalla(recorridoId: 3),
+        repositorio,
+      );
+
+      expect(find.text('CONSEJO'), findsOneWidget);
+      expect(find.text('¡Excelente viaje!'), findsOneWidget);
+      expect(find.byIcon(Icons.verified_outlined), findsOneWidget);
+      // En el detalle la tarjeta no se toca: no lleva flecha
+      expect(
+        find.descendant(
+          of: find.byType(TarjetaConsejo),
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('secundarias debajo del consejo (HU-19)', (tester) async {
+      final repositorio = _RepositorioFalso(
+        paginas: (_) => _vacia(),
+        detalle: (id) => _recorrido(
+          id,
+          tarde,
+          puntaje: const PuntajeViaje(
+            drivescore: 76,
+            frenadas: 70,
+            aceleraciones: 76,
+            giros: 52,
+            velocidad: 100,
+          ),
+          eventosPorTipo: _conteo(frenadas: 1, aceleraciones: 1, giros: 2),
+          recomendacion: const Recomendacion(
+            tipo: TipoEvento.giroAgresivo,
+            titulo: 'Gira con suavidad',
+            texto: 'Hubo 2 giros bruscos.',
+          ),
+          secundarias: const [
+            Recomendacion(
+              tipo: TipoEvento.frenadaBrusca,
+              titulo: 'Anticipa tus frenadas',
+              texto: 'Tuviste una frenada brusca.',
+            ),
+            Recomendacion(
+              tipo: TipoEvento.aceleracionSevera,
+              titulo: 'Acelera con suavidad',
+              texto: 'Tuviste una aceleración fuerte.',
+            ),
+          ],
+        ),
+      );
+      await _mostrar(
+        tester,
+        const DetalleViajePantalla(recorridoId: 3),
+        repositorio,
+      );
+      await tester.scrollUntilVisible(find.text('Acelera con suavidad'), 200);
+
+      expect(find.text('TAMBIÉN PUEDES MEJORAR'), findsOneWidget);
+      expect(find.byType(ConsejosSecundarios), findsOneWidget);
+      final frenada = tester.getTopLeft(find.text('Anticipa tus frenadas')).dy;
+      expect(
+        tester.getTopLeft(find.text('Gira con suavidad')).dy,
+        lessThan(frenada),
+      );
+      expect(
+        tester.getTopLeft(find.text('Acelera con suavidad')).dy,
+        greaterThan(frenada),
+      );
+    });
+
+    testWidgets('empate: lo que más restó es la de mayor riesgo', (
+      tester,
+    ) async {
       final repositorio = _RepositorioFalso(
         paginas: (_) => _vacia(),
         detalle: (id) => _recorrido(
@@ -527,6 +629,8 @@ void main() {
       expect(antiguo.eventosPorTipo, isNull);
       expect(antiguo.eventos, isNull);
       expect(antiguo.ruta, isNull);
+      expect(antiguo.recomendacion, isNull);
+      expect(antiguo.secundarias, isEmpty);
     });
 
     test('lee la ruta y los eventos con su posición (HU-29)', () {

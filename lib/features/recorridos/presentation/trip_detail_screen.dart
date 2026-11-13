@@ -7,6 +7,8 @@ import '../../../app/router.dart';
 import '../../../core/design/design.dart';
 import '../../../core/widgets/illustration_painters.dart';
 import '../../../core/widgets/label.dart';
+import '../../recomendaciones/presentation/widgets/recommendation_card.dart';
+import '../../recomendaciones/presentation/widgets/secondary_recommendations.dart';
 import '../models/trip_history.dart';
 import '../providers/trip_history_provider.dart';
 import 'trip_format.dart';
@@ -134,6 +136,14 @@ class _Contenido extends StatelessWidget {
                   puntaje: puntaje,
                   eventosPorTipo: recorrido.eventosPorTipo,
                 ),
+                const SizedBox(height: Espacios.m),
+              ],
+              if (recorrido.recomendacion case final consejo?) ...[
+                TarjetaConsejo(recomendacion: consejo),
+                const SizedBox(height: Espacios.m),
+              ],
+              if (recorrido.secundarias.isNotEmpty) ...[
+                ConsejosSecundarios(recomendaciones: recorrido.secundarias),
                 const SizedBox(height: Espacios.m),
               ],
               FilaCifras(

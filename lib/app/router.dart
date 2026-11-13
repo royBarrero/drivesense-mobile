@@ -8,6 +8,7 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/providers/session_provider.dart';
 import '../features/inicio/presentation/home_screen.dart';
 import '../features/perfil/presentation/profile_screen.dart';
+import '../features/puntaje/presentation/period_comparison_screen.dart';
 import '../features/puntaje/presentation/score_history_screen.dart';
 import '../features/recorridos/presentation/live_trip_screen.dart';
 import '../features/recorridos/presentation/trip_detail_screen.dart';
@@ -31,6 +32,9 @@ abstract final class Rutas {
 
   /// Mi DriveScore (HU-17), a pantalla completa (sobre la barra).
   static const miDriveScore = '$inicio/drivescore';
+
+  /// Comparativo entre periodos (HU-20), desde Mi DriveScore.
+  static const comparativo = '$miDriveScore/comparar';
 
   /// Detalle de un viaje del historial, a pantalla completa (sobre la barra).
   static String detalleViaje(int id) => '$viajes/$id';
@@ -107,6 +111,13 @@ final rutasProvider = Provider<GoRouter>((ref) {
                     // Tapa la barra inferior; "atrás" vuelve a Inicio
                     parentNavigatorKey: _navegadorRaiz,
                     builder: (_, _) => const MiDriveScorePantalla(),
+                    routes: [
+                      GoRoute(
+                        path: 'comparar',
+                        parentNavigatorKey: _navegadorRaiz,
+                        builder: (_, _) => const ComparativoPantalla(),
+                      ),
+                    ],
                   ),
                 ],
               ),

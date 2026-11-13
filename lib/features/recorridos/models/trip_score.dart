@@ -41,18 +41,15 @@ class PuntajeViaje {
   };
 
   /// "Lo que más restó" (HU-16): la categoría con menor puntaje; en empate, la
-  /// de mayor peso y, con el mismo peso, la primera de [CategoriaPuntaje].
-  /// `null` si ninguna bajó de 100.
+  /// de mayor riesgo ([CategoriaPuntaje.porRiesgo], el mismo desempate de la
+  /// recomendación del backend, HU-18). `null` si ninguna bajó de 100.
   CategoriaPuntaje? get masResto {
     CategoriaPuntaje? peor;
-    for (final categoria in CategoriaPuntaje.values) {
+    // En orden de riesgo: con el mismo puntaje se queda la primera
+    for (final categoria in CategoriaPuntaje.porRiesgo) {
       final puntaje = de(categoria);
       if (puntaje >= 100) continue;
-      if (peor == null ||
-          puntaje < de(peor) ||
-          (puntaje == de(peor) && categoria.peso > peor.peso)) {
-        peor = categoria;
-      }
+      if (peor == null || puntaje < de(peor)) peor = categoria;
     }
     return peor;
   }
@@ -72,6 +69,10 @@ enum CategoriaPuntaje {
   velocidad('Velocidad', 'velocidad', 0.30, TipoEvento.excesoVelocidad);
 
   const CategoriaPuntaje(this.nombre, this.enTexto, this.peso, this.tipo);
+
+  /// Orden de riesgo para los empates (igual que `ORDEN_RIESGO` del backend):
+  /// velocidad, frenadas, giros, aceleraciones.
+  static const porRiesgo = [velocidad, frenadas, giros, aceleraciones];
 
   final String nombre;
 

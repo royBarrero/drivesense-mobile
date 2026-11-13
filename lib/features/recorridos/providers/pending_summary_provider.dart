@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_error.dart';
 import '../../auth/providers/session_provider.dart';
 import '../../puntaje/providers/score_history_provider.dart';
+import '../../recomendaciones/models/recommendation.dart';
 import '../data/trip_local_storage.dart';
 import '../data/trips_repository.dart';
 import '../models/trip.dart';
+import '../models/trip_history.dart';
 import '../models/trip_score.dart';
 import 'trip_history_provider.dart';
 import 'trip_provider.dart';
@@ -25,7 +27,14 @@ enum ResultadoEnvio {
 }
 
 class Envio {
-  const Envio(this.resultado, {this.recorrido, this.puntaje, this.mensaje});
+  const Envio(
+    this.resultado, {
+    this.recorrido,
+    this.puntaje,
+    this.recomendacion,
+    this.secundarias = const [],
+    this.mensaje,
+  });
 
   final ResultadoEnvio resultado;
 
@@ -35,6 +44,12 @@ class Envio {
   /// DriveScore (HU-15): de la respuesta o, si ya estaba finalizado (409), del
   /// detalle del recorrido. Nulo si no se pudo obtener o si se descartó.
   final PuntajeViaje? puntaje;
+
+  /// Recomendación principal (HU-18), de la misma fuente que [puntaje].
+  final Recomendacion? recomendacion;
+
+  /// Recomendaciones secundarias (HU-19), de la misma fuente.
+  final List<Recomendacion> secundarias;
 
   /// Motivo del rechazo.
   final String? mensaje;
@@ -100,12 +115,14 @@ class ResumenPendienteNotifier extends AsyncNotifier<ResumenRecorrido?> {
     }
 
     // El viaje ya está en el backend: el historial, Inicio (semana, último viaje
-    // y DriveScore) y Mi DriveScore (HU-17) se vuelven a cargar
+    // y DriveScore), Mi DriveScore (HU-17) y el comparativo (HU-20) se vuelven
+    // a cargar
     void actualizarHistorial() {
       if (ref.mounted) {
         ref.invalidate(historialProvider);
         ref.invalidate(ultimoViajeProvider);
         ref.invalidate(historicoPuntajeProvider);
+        ref.invalidate(comparativoPuntajeProvider);
       }
     }
 
@@ -128,22 +145,31 @@ class ResumenPendienteNotifier extends AsyncNotifier<ResumenRecorrido?> {
           ResultadoEnvio.enviado,
           recorrido: recorrido,
           puntaje: recorrido.puntaje,
+          recomendacion: recorrido.recomendacion,
+          secundarias: recorrido.secundarias,
         ),
       );
     } on ErrorApi catch (e) {
       switch (e.codigo) {
         case 409:
           // Ya estaba finalizado (p. ej. la respuesta anterior se perdió): el
-          // puntaje se pide al detalle
+          // puntaje y la recomendación se piden al detalle
           await borrar();
           actualizarHistorial();
-          PuntajeViaje? puntaje;
+          RecorridoHistorial? detalle;
           try {
-            puntaje = (await repositorio.obtener(resumen.recorridoId)).puntaje;
+            detalle = await repositorio.obtener(resumen.recorridoId);
           } on ErrorApi {
-            puntaje = null;
+            detalle = null;
           }
-          return avisar(Envio(ResultadoEnvio.enviado, puntaje: puntaje));
+          return avisar(
+            Envio(
+              ResultadoEnvio.enviado,
+              puntaje: detalle?.puntaje,
+              recomendacion: detalle?.recomendacion,
+              secundarias: detalle?.secundarias ?? const [],
+            ),
+          );
         case 404 || 422:
           await borrar();
           return Envio(ResultadoEnvio.rechazado, mensaje: e.mensaje);

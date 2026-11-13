@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/api/api_error.dart';
 import '../../auth/providers/session_provider.dart';
+import '../../recomendaciones/models/recommendation.dart';
 import '../../telemetria/data/calibration_recorder.dart';
 import '../../telemetria/data/event_alert_service.dart';
 import '../../telemetria/data/sensor_service.dart';
@@ -96,6 +97,8 @@ class ViajeTerminado extends EstadoViaje {
     this.mensaje,
     this.archivoCalibracion,
     this.puntaje,
+    this.recomendacion,
+    this.secundarias = const [],
     this.automatico = false,
   });
 
@@ -105,6 +108,12 @@ class ViajeTerminado extends EstadoViaje {
   /// DriveScore (HU-15). Nulo mientras el envío está pendiente o si no se pudo
   /// obtener.
   final PuntajeViaje? puntaje;
+
+  /// Recomendación principal (HU-18); nula igual que [puntaje].
+  final Recomendacion? recomendacion;
+
+  /// Recomendaciones secundarias (HU-19); vacía igual que sin puntaje.
+  final List<Recomendacion> secundarias;
 
   /// Motivo si el backend lo rechazó.
   final String? mensaje;
@@ -351,6 +360,8 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
         : ResultadoViaje.finalizado,
     archivoCalibracion: archivoCalibracion,
     puntaje: envio.puntaje,
+    recomendacion: envio.recomendacion,
+    secundarias: envio.secundarias,
     automatico: automatico,
   );
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drivesense/app/theme.dart';
+import 'package:drivesense/features/recomendaciones/models/recommendation.dart';
 import 'package:drivesense/features/recorridos/models/trip.dart';
 import 'package:drivesense/features/recorridos/models/trip_accumulator.dart';
 import 'package:drivesense/features/recorridos/models/trip_score.dart';
@@ -186,6 +187,97 @@ void main() {
       expect(Recorrido.fromJson({...json, 'drivescore': null}).puntaje, isNull);
     });
 
+    test('lee la recomendación de la respuesta (HU-18)', () {
+      final json = {
+        'id': 7,
+        'estado': 'finalizado',
+        'fecha_inicio': '2026-10-04T16:05:00Z',
+        'drivescore': 100,
+        'puntaje_frenadas': 100,
+        'puntaje_aceleraciones': 100,
+        'puntaje_giros': 100,
+        'puntaje_velocidad': 100,
+        'recomendacion': {
+          'tipo': 'giro_agresivo',
+          'titulo': 'Gira con suavidad',
+          'texto': 'Hubo un giro brusco.',
+        },
+      };
+      final recomendacion = Recorrido.fromJson(json).recomendacion!;
+      expect(recomendacion.tipo, TipoEvento.giroAgresivo);
+      expect(recomendacion.titulo, 'Gira con suavidad');
+      expect(recomendacion.texto, 'Hubo un giro brusco.');
+      // Sin eventos: el mensaje positivo no tiene tipo de evento
+      final positiva = Recorrido.fromJson({
+        ...json,
+        'recomendacion': {
+          'tipo': 'sin_eventos',
+          'titulo': '¡Excelente viaje!',
+          'texto': 'No tuviste eventos de riesgo.',
+        },
+      }).recomendacion!;
+      expect(positiva.tipo, isNull);
+      // Descartado o en curso: nula (o sin la clave, versión anterior)
+      expect(
+        Recorrido.fromJson({...json, 'recomendacion': null}).recomendacion,
+        isNull,
+      );
+      expect(
+        Recorrido.fromJson({...json}..remove('recomendacion')).recomendacion,
+        isNull,
+      );
+    });
+
+    test('lee las secundarias en orden (HU-19)', () {
+      final json = {
+        'id': 7,
+        'estado': 'finalizado',
+        'fecha_inicio': '2026-10-04T16:05:00Z',
+        'drivescore': 76,
+        'puntaje_frenadas': 70,
+        'puntaje_aceleraciones': 76,
+        'puntaje_giros': 52,
+        'puntaje_velocidad': 100,
+        'recomendacion': {
+          'tipo': 'giro_agresivo',
+          'titulo': 'Gira con suavidad',
+          'texto': 'Hubo 2 giros bruscos.',
+        },
+        'recomendaciones_secundarias': [
+          {
+            'tipo': 'frenada_brusca',
+            'titulo': 'Anticipa tus frenadas',
+            'texto': 'Tuviste una frenada brusca.',
+          },
+          {
+            'tipo': 'aceleracion_severa',
+            'titulo': 'Acelera con suavidad',
+            'texto': 'Tuviste una aceleración fuerte.',
+          },
+        ],
+      };
+      final secundarias = Recorrido.fromJson(json).secundarias;
+      expect(secundarias.map((r) => r.tipo), [
+        TipoEvento.frenadaBrusca,
+        TipoEvento.aceleracionSevera,
+      ]);
+      expect(secundarias.first.titulo, 'Anticipa tus frenadas');
+      // Sin la clave (backend anterior) o vacía: ninguna
+      expect(
+        Recorrido.fromJson(
+          {...json}..remove('recomendaciones_secundarias'),
+        ).secundarias,
+        isEmpty,
+      );
+      expect(
+        Recorrido.fromJson({
+          ...json,
+          'recomendaciones_secundarias': [],
+        }).secundarias,
+        isEmpty,
+      );
+    });
+
     test('calificación en los bordes de cada rango', () {
       expect(Calificacion.de(100), Calificacion.excelente);
       expect(Calificacion.de(90), Calificacion.excelente);
@@ -207,7 +299,7 @@ void main() {
       );
     });
 
-    test('en empate gana la de mayor peso', () {
+    test('en empate gana la de mayor riesgo', () {
       expect(
         _puntaje(aceleraciones: 80, velocidad: 80).masResto,
         CategoriaPuntaje.velocidad,
@@ -218,14 +310,23 @@ void main() {
       );
     });
 
-    test('con el mismo peso, el orden del desglose', () {
+    test('con el mismo peso, también el riesgo (igual que el backend)', () {
       expect(
         _puntaje(frenadas: 80, velocidad: 80).masResto,
-        CategoriaPuntaje.frenadas,
+        CategoriaPuntaje.velocidad,
       );
       expect(
         _puntaje(aceleraciones: 80, giros: 80).masResto,
-        CategoriaPuntaje.aceleraciones,
+        CategoriaPuntaje.giros,
+      );
+      expect(
+        _puntaje(
+          frenadas: 80,
+          aceleraciones: 80,
+          giros: 80,
+          velocidad: 80,
+        ).masResto,
+        CategoriaPuntaje.velocidad,
       );
     });
 
@@ -285,7 +386,9 @@ void main() {
       expect(find.text('Ver mapa completo'), findsNothing);
     });
 
-    testWidgets('empate: lo que más restó es la de mayor peso', (tester) async {
+    testWidgets('empate: lo que más restó es la de mayor riesgo', (
+      tester,
+    ) async {
       await _mostrarResumen(
         tester,
         ViajeTerminado(
@@ -295,6 +398,86 @@ void main() {
         ),
       );
       expect(find.text('Lo que más restó: velocidad'), findsOneWidget);
+    });
+
+    testWidgets('muestra el consejo del viaje (HU-18)', (tester) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(
+          _resumen(eventos: [_frenada]),
+          ResultadoViaje.finalizado,
+          puntaje: _puntaje86,
+          recomendacion: const Recomendacion(
+            tipo: TipoEvento.frenadaBrusca,
+            titulo: 'Anticipa tus frenadas',
+            texto: 'Tuviste una frenada brusca.',
+          ),
+        ),
+      );
+      expect(find.text('CONSEJO'), findsOneWidget);
+      expect(find.text('Anticipa tus frenadas'), findsOneWidget);
+      expect(find.text('Tuviste una frenada brusca.'), findsOneWidget);
+      // El ícono del tipo: uno en el contador y otro en el consejo
+      expect(find.byIcon(Icons.south), findsNWidgets(2));
+    });
+
+    testWidgets('secundarias debajo de la principal (HU-19)', (tester) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(
+          _resumen(eventos: [_frenada, _exceso]),
+          ResultadoViaje.finalizado,
+          puntaje: _puntaje(frenadas: 70, velocidad: 96),
+          recomendacion: const Recomendacion(
+            tipo: TipoEvento.frenadaBrusca,
+            titulo: 'Anticipa tus frenadas',
+            texto: 'Tuviste una frenada brusca.',
+          ),
+          secundarias: const [
+            Recomendacion(
+              tipo: TipoEvento.excesoVelocidad,
+              titulo: 'Baja la velocidad',
+              texto: 'Ibas sobre el límite durante 12 segundos.',
+            ),
+          ],
+        ),
+      );
+      expect(find.text('CONSEJO'), findsOneWidget);
+      expect(find.text('TAMBIÉN PUEDES MEJORAR'), findsOneWidget);
+      expect(find.text('Baja la velocidad'), findsOneWidget);
+      // Debajo de la principal
+      expect(
+        tester.getTopLeft(find.text('Baja la velocidad')).dy,
+        greaterThan(tester.getTopLeft(find.text('Anticipa tus frenadas')).dy),
+      );
+    });
+
+    testWidgets('sin secundarias, sin su tarjeta', (tester) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(
+          _resumen(eventos: [_frenada]),
+          ResultadoViaje.finalizado,
+          puntaje: _puntaje86,
+          recomendacion: const Recomendacion(
+            tipo: TipoEvento.frenadaBrusca,
+            titulo: 'Anticipa tus frenadas',
+            texto: 'Tuviste una frenada brusca.',
+          ),
+        ),
+      );
+      expect(find.text('CONSEJO'), findsOneWidget);
+      expect(find.text('TAMBIÉN PUEDES MEJORAR'), findsNothing);
+    });
+
+    testWidgets('sin consejo (pendiente o versión anterior), sin tarjeta', (
+      tester,
+    ) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(_resumen(), ResultadoViaje.pendiente),
+      );
+      expect(find.text('CONSEJO'), findsNothing);
     });
 
     testWidgets('sin eventos: mensaje positivo', (tester) async {

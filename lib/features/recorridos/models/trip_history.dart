@@ -1,3 +1,4 @@
+import '../../recomendaciones/models/recommendation.dart';
 import '../../telemetria/models/event_detector.dart';
 import '../../telemetria/models/route.dart';
 import 'trip_score.dart';
@@ -17,6 +18,8 @@ class RecorridoHistorial {
     this.eventosPorTipo,
     this.ruta,
     this.eventos,
+    this.recomendacion,
+    this.secundarias = const [],
   });
 
   factory RecorridoHistorial.fromJson(Map<String, dynamic> json) =>
@@ -55,6 +58,10 @@ class RecorridoHistorial {
           ],
           _ => null,
         },
+        recomendacion: Recomendacion.fromJson(json['recomendacion']),
+        secundarias: Recomendacion.listaDesdeJson(
+          json['recomendaciones_secundarias'],
+        ),
       );
 
   final int id;
@@ -86,6 +93,14 @@ class RecorridoHistorial {
   /// Eventos de riesgo en orden cronológico, con su posición (HU-29): solo en
   /// el detalle y si el viaje tiene DriveScore.
   final List<EventoRiesgo>? eventos;
+
+  /// Recomendación principal (HU-18): solo en el detalle y si el viaje tiene
+  /// DriveScore.
+  final Recomendacion? recomendacion;
+
+  /// Recomendaciones secundarias (HU-19): solo en el detalle; vacía si no
+  /// hay.
+  final List<Recomendacion> secundarias;
 }
 
 /// Totales de los viajes finalizados del periodo.

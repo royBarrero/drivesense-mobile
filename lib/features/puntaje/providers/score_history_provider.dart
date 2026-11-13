@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/providers/session_provider.dart';
 import '../data/score_repository.dart';
+import '../models/period_comparison.dart';
 import '../models/score_history.dart';
 
 /// Histórico del DriveScore de un periodo (HU-17); `null` sin sesión.
@@ -19,5 +20,24 @@ final historicoPuntajeProvider =
       return conSesion(
         ref,
         () => repositorio.historico(desde: periodo.desde(DateTime.now())),
+      );
+    }, retry: (intento, error) => null);
+
+/// Comparativo del periodo actual con el anterior (HU-20); `null` sin sesión.
+/// Se invalida junto con [historicoPuntajeProvider].
+final comparativoPuntajeProvider =
+    FutureProvider.family<ComparativoPuntaje?, PeriodoComparativo>((
+      ref,
+      periodo,
+    ) async {
+      final usuarioId = ref.watch(sesionProvider.select((s) => s.value?.id));
+      if (usuarioId == null) return null;
+      final repositorio = ref.read(puntajeRepositorioProvider);
+      return conSesion(
+        ref,
+        () => repositorio.comparativo(
+          periodo: periodo,
+          desde: periodo.desde(DateTime.now()),
+        ),
       );
     }, retry: (intento, error) => null);

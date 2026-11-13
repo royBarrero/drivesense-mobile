@@ -13,6 +13,7 @@ import '../../auth/providers/session_provider.dart';
 import '../../puntaje/models/score_history.dart';
 import '../../puntaje/presentation/widgets/trend_badge.dart';
 import '../../puntaje/providers/score_history_provider.dart';
+import '../../recomendaciones/presentation/widgets/recommendation_card.dart';
 import '../../recorridos/models/trip_history.dart';
 import '../../recorridos/models/trip_score.dart';
 import '../../recorridos/presentation/trip_format.dart';
@@ -33,7 +34,8 @@ String saludoSegunHora(DateTime ahora) => switch (ahora.hour) {
 
 /// Pestaña Inicio (diseño B): encabezado oscuro con el saludo y el DriveScore
 /// de los últimos 7 días (HU-17), el botón del recorrido flotando sobre su
-/// borde, el resumen de la semana y el último viaje (HU-06).
+/// borde, el resumen de la semana, el último viaje (HU-06) y su consejo
+/// (HU-18).
 class InicioPantalla extends ConsumerWidget {
   const InicioPantalla({super.key, this.reloj = DateTime.now});
 
@@ -71,6 +73,7 @@ class InicioPantalla extends ConsumerWidget {
               ),
               child: _UltimoViaje(),
             ),
+          if (hayUltimo) const _Consejo(),
         ],
       ),
     );
@@ -807,6 +810,31 @@ class _UltimoViaje extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Consejo del último viaje (HU-18): su recomendación principal, del detalle
+/// (comparte la caché con la pantalla del detalle). Mientras carga, con error o
+/// sin recomendación (viaje anterior a HU-15), no aparece.
+class _Consejo extends ConsumerWidget {
+  const _Consejo();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final id = ref.watch(ultimoViajeProvider).value?.id;
+    if (id == null) return const SizedBox.shrink();
+    final consejo = ref
+        .watch(detalleRecorridoProvider(id))
+        .value
+        ?.recomendacion;
+    if (consejo == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Espacios.l, Espacios.m, Espacios.l, 0),
+      child: TarjetaConsejo(
+        recomendacion: consejo,
+        alPresionar: () => context.push(Rutas.detalleViaje(id)),
       ),
     );
   }

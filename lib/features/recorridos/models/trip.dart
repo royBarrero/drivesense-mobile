@@ -1,3 +1,4 @@
+import '../../recomendaciones/models/recommendation.dart';
 import '../../telemetria/models/event_detector.dart';
 import '../../telemetria/models/route.dart';
 import 'trip_accumulator.dart';
@@ -24,6 +25,8 @@ class Recorrido {
     required this.estado,
     required this.fechaInicio,
     this.puntaje,
+    this.recomendacion,
+    this.secundarias = const [],
   });
 
   factory Recorrido.fromJson(Map<String, dynamic> json) => Recorrido(
@@ -31,6 +34,10 @@ class Recorrido {
     estado: EstadoRecorrido.desdeApi(json['estado'] as String),
     fechaInicio: DateTime.parse(json['fecha_inicio'] as String),
     puntaje: PuntajeViaje.fromJson(json),
+    recomendacion: Recomendacion.fromJson(json['recomendacion']),
+    secundarias: Recomendacion.listaDesdeJson(
+      json['recomendaciones_secundarias'],
+    ),
   );
 
   final int id;
@@ -41,6 +48,13 @@ class Recorrido {
 
   /// DriveScore (HU-15): solo en la respuesta de un recorrido finalizado.
   final PuntajeViaje? puntaje;
+
+  /// Recomendación principal (HU-18): solo en la respuesta de un recorrido
+  /// finalizado.
+  final Recomendacion? recomendacion;
+
+  /// Recomendaciones secundarias (HU-19); vacía si no hay.
+  final List<Recomendacion> secundarias;
 }
 
 /// Recorrido en curso guardado en el teléfono con sus acumulados y su ruta.
