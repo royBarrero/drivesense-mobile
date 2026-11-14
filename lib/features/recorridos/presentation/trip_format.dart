@@ -98,6 +98,12 @@ abstract final class FormatoViaje {
   static String fechaLarga(DateTime fecha) =>
       '${_dias[fecha.weekday - 1]} ${fecha.day} de ${_meses[fecha.month - 1]}';
 
+  /// `3 de noviembre`, en la zona del teléfono.
+  static String diaMes(DateTime fecha) {
+    final local = fecha.toLocal();
+    return '${local.day} de ${_meses[local.month - 1]}';
+  }
+
   /// `28 sep`, en la zona del teléfono.
   static String fechaCorta(DateTime fecha) {
     final local = fecha.toLocal();

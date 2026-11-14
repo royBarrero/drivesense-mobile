@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/design/design.dart';
 import '../../../core/widgets/label.dart';
 import '../../../core/widgets/period_chips.dart';
+import '../../../core/widgets/screen_header.dart';
 import '../../recorridos/models/trip_score.dart';
 import '../../recorridos/presentation/trip_format.dart';
 import '../../recorridos/presentation/widgets/live_alert_capsules.dart';
@@ -12,7 +13,6 @@ import '../../recorridos/presentation/widgets/load_error.dart';
 import '../../recorridos/presentation/widgets/score_breakdown.dart';
 import '../models/period_comparison.dart';
 import '../providers/score_history_provider.dart';
-import 'widgets/score_screen_parts.dart';
 import 'widgets/trend_badge.dart';
 
 /// "Comparar periodos" (HU-20): esta semana o este mes frente al anterior. Se
@@ -93,7 +93,7 @@ class _ComparativoPantallaState extends ConsumerState<ComparativoPantalla> {
               MediaQuery.paddingOf(context).bottom + Espacios.l,
             ),
             children: [
-              const CabeceraPuntaje(titulo: 'Comparar periodos'),
+              const CabeceraPantalla(titulo: 'Comparar periodos'),
               const SizedBox(height: Espacios.m),
               ChipsPeriodo(
                 opciones: PeriodoComparativo.values,

@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/api/api_error.dart';
 import '../../auth/providers/session_provider.dart';
+import '../../gamificacion/models/progress.dart';
 import '../../recomendaciones/models/recommendation.dart';
 import '../../telemetria/data/calibration_recorder.dart';
 import '../../telemetria/data/event_alert_service.dart';
@@ -99,6 +100,7 @@ class ViajeTerminado extends EstadoViaje {
     this.puntaje,
     this.recomendacion,
     this.secundarias = const [],
+    this.recompensa,
     this.automatico = false,
   });
 
@@ -114,6 +116,10 @@ class ViajeTerminado extends EstadoViaje {
 
   /// Recomendaciones secundarias (HU-19); vacía igual que sin puntaje.
   final List<Recomendacion> secundarias;
+
+  /// Puntos, nivel y logros nuevos (HU-21). Solo de la respuesta del PATCH:
+  /// nula si quedó pendiente, se descartó o la respuesta se perdió (409).
+  final RecompensaViaje? recompensa;
 
   /// Motivo si el backend lo rechazó.
   final String? mensaje;
@@ -362,6 +368,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
     puntaje: envio.puntaje,
     recomendacion: envio.recomendacion,
     secundarias: envio.secundarias,
+    recompensa: envio.recorrido?.recompensa,
     automatico: automatico,
   );
 

@@ -7,6 +7,8 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/providers/session_provider.dart';
 import '../features/inicio/presentation/home_screen.dart';
+import '../features/gamificacion/presentation/achievements_screen.dart';
+import '../features/gamificacion/presentation/challenges_screen.dart';
 import '../features/perfil/presentation/profile_screen.dart';
 import '../features/puntaje/presentation/period_comparison_screen.dart';
 import '../features/puntaje/presentation/score_history_screen.dart';
@@ -32,6 +34,12 @@ abstract final class Rutas {
 
   /// Mi DriveScore (HU-17), a pantalla completa (sobre la barra).
   static const miDriveScore = '$inicio/drivescore';
+
+  /// Logros del conductor (HU-21), desde Perfil.
+  static const logros = '$perfil/logros';
+
+  /// Desafíos semanales (HU-22), desde Inicio.
+  static const desafios = '$inicio/desafios';
 
   /// Comparativo entre periodos (HU-20), desde Mi DriveScore.
   static const comparativo = '$miDriveScore/comparar';
@@ -119,6 +127,12 @@ final rutasProvider = Provider<GoRouter>((ref) {
                       ),
                     ],
                   ),
+                  GoRoute(
+                    path: 'desafios',
+                    // Tapa la barra inferior; "atrás" vuelve a Inicio
+                    parentNavigatorKey: _navegadorRaiz,
+                    builder: (_, _) => const DesafiosPantalla(),
+                  ),
                 ],
               ),
             ],
@@ -146,6 +160,14 @@ final rutasProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: Rutas.perfil,
                 builder: (_, _) => const PerfilPantalla(),
+                routes: [
+                  GoRoute(
+                    path: 'logros',
+                    // Tapa la barra inferior; "atrás" vuelve a Perfil
+                    parentNavigatorKey: _navegadorRaiz,
+                    builder: (_, _) => const LogrosPantalla(),
+                  ),
+                ],
               ),
             ],
           ),

@@ -10,6 +10,9 @@ import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/illustration_painters.dart';
 import '../../../core/widgets/logo.dart';
 import '../../auth/providers/session_provider.dart';
+import '../../gamificacion/models/weekly_challenges.dart';
+import '../../gamificacion/presentation/widgets/challenge_widgets.dart';
+import '../../gamificacion/providers/challenges_provider.dart';
 import '../../puntaje/models/score_history.dart';
 import '../../puntaje/presentation/widgets/trend_badge.dart';
 import '../../puntaje/providers/score_history_provider.dart';
@@ -63,6 +66,7 @@ class InicioPantalla extends ConsumerWidget {
             padding: EdgeInsets.fromLTRB(Espacios.l, Espacios.l, Espacios.l, 0),
             child: _EstaSemana(),
           ),
+          _DesafiosSemana(reloj: reloj),
           if (hayUltimo)
             const Padding(
               padding: EdgeInsets.fromLTRB(
@@ -721,6 +725,148 @@ class _CifraSemana extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Desafíos de la semana (HU-22), compactos: cuántos van completados, el
+/// tiempo que queda y una fila por desafío con su avance; abre la pantalla de
+/// desafíos. Mientras carga, con error o sin sesión, no aparece.
+class _DesafiosSemana extends ConsumerWidget {
+  const _DesafiosSemana({required this.reloj});
+
+  final DateTime Function() reloj;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final semana = ref.watch(desafiosProvider).value;
+    if (semana == null || semana.desafios.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final colores = context.colores;
+    final tipografia = context.tipografia;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Espacios.l, Espacios.l, Espacios.l, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Desafíos de la semana',
+                  style: tipografia.tituloTarjeta.copyWith(
+                    color: colores.textoPrincipal,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => context.push(Rutas.desafios),
+                style: TextButton.styleFrom(
+                  foregroundColor: colores.enlace,
+                  textStyle: tipografia.cuerpo.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                child: const Text('Ver todos'),
+              ),
+            ],
+          ),
+          const SizedBox(height: Espacios.xs),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Radios.tarjeta),
+              boxShadow: colores.sombraTarjeta,
+            ),
+            child: Material(
+              color: colores.superficie,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Radios.tarjeta),
+                side: BorderSide(color: colores.borde),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => context.push(Rutas.desafios),
+                child: Padding(
+                  padding: const EdgeInsets.all(Espacios.m),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        '${semana.completados} de ${semana.desafios.length} '
+                        'completados · ${semana.tiempoRestante(reloj())}',
+                        style: tipografia.cuerpoPequeno.copyWith(
+                          color: colores.textoSecundario,
+                        ),
+                      ),
+                      for (final desafio in semana.desafios) ...[
+                        const SizedBox(height: Espacios.s),
+                        _FilaDesafio(desafio: desafio),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ícono, nombre y avance de un desafío; el completado lleva el check.
+class _FilaDesafio extends StatelessWidget {
+  const _FilaDesafio({required this.desafio});
+
+  final Desafio desafio;
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    final tipografia = context.tipografia;
+    return Row(
+      children: [
+        CajaDesafio(
+          codigo: desafio.codigo,
+          categoria: desafio.categoria,
+          tamano: Medidas.cajaIcono,
+        ),
+        const SizedBox(width: Espacios.m),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                desafio.nombre,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tipografia.cuerpo.copyWith(
+                  color: colores.textoPrincipal,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                desafio.avanceTexto,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tipografia.ayuda.copyWith(
+                  color: colores.textoSecundario,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (desafio.completado) ...[
+          const SizedBox(width: Espacios.s),
+          Icon(
+            Icons.check_circle_rounded,
+            size: Medidas.icono,
+            color: colores.primarioOscuro,
+          ),
+        ],
+      ],
     );
   }
 }

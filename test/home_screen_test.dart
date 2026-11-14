@@ -6,6 +6,9 @@ import 'package:drivesense/app/theme.dart';
 import 'package:drivesense/core/api/api_error.dart';
 import 'package:drivesense/features/auth/models/user.dart';
 import 'package:drivesense/features/auth/providers/session_provider.dart';
+import 'package:drivesense/features/gamificacion/models/progress.dart';
+import 'package:drivesense/features/gamificacion/models/weekly_challenges.dart';
+import 'package:drivesense/features/gamificacion/providers/challenges_provider.dart';
 import 'package:drivesense/features/inicio/presentation/home_screen.dart';
 import 'package:drivesense/features/puntaje/data/score_repository.dart';
 import 'package:drivesense/features/puntaje/models/score_history.dart';
@@ -14,6 +17,7 @@ import 'package:drivesense/features/recorridos/data/trips_repository.dart';
 import 'package:drivesense/features/recorridos/models/trip.dart';
 import 'package:drivesense/features/recorridos/models/trip_accumulator.dart';
 import 'package:drivesense/features/recorridos/models/trip_history.dart';
+import 'package:drivesense/features/recorridos/models/trip_score.dart';
 import 'package:drivesense/features/recorridos/presentation/widgets/drive_score_ring.dart';
 import 'package:drivesense/features/recorridos/providers/pending_summary_provider.dart';
 import 'package:drivesense/features/recorridos/providers/trip_provider.dart';
@@ -175,6 +179,7 @@ Future<_PuntajeFalso> _mostrar(
   Future<HistoricoPuntaje> Function()? historico,
   RecorridoHistorial? ultimo,
   Recomendacion? consejo,
+  DesafiosSemana? desafios,
   EstadoViaje viaje = const SinViaje(),
   ResumenRecorrido? pendiente,
   DateTime? ahora,
@@ -197,6 +202,10 @@ Future<_PuntajeFalso> _mostrar(
           GoRoute(
             path: 'drivescore',
             builder: (_, _) => const Text('Pantalla Mi DriveScore'),
+          ),
+          GoRoute(
+            path: 'desafios',
+            builder: (_, _) => const Text('Pantalla Desafíos'),
           ),
         ],
       ),
@@ -222,6 +231,8 @@ Future<_PuntajeFalso> _mostrar(
         viajeProvider.overrideWith(() => _ViajeFijo(viaje)),
         resumenPendienteProvider.overrideWith(() => _PendienteFijo(pendiente)),
         puntajeRepositorioProvider.overrideWithValue(puntaje),
+        // Desafíos (HU-22) sin red; nulos por defecto (la tarjeta no aparece)
+        desafiosProvider.overrideWith((ref) async => desafios),
         recorridosRepositorioProvider.overrideWithValue(
           _RecorridosFalso(semana: _semana, ultimo: ultimo, consejo: consejo),
         ),
@@ -409,6 +420,82 @@ void main() {
       await tester.tap(find.text('Mis viajes'));
       await tester.pumpAndSettle();
       expect(find.text('Pantalla Viajes'), findsOneWidget);
+    });
+  });
+
+  group('Desafíos de la semana (HU-22)', () {
+    final semana = DesafiosSemana(
+      inicio: DateTime(2026, 9, 28),
+      fin: DateTime(2026, 10, 5),
+      desafios: const [
+        Desafio(
+          codigo: 'semana_activa',
+          tipo: TipoDesafio.constancia,
+          nombre: 'Semana activa',
+          descripcion: 'Completa 5 viajes esta semana.',
+          tipoProgreso: TipoProgreso.viajes,
+          meta: 5,
+          progreso: 5,
+          completado: true,
+          puntos: 150,
+        ),
+        Desafio(
+          codigo: 'racha_excelente',
+          tipo: TipoDesafio.calidad,
+          nombre: 'Racha excelente',
+          descripcion: 'Haz 3 viajes seguidos con DriveScore de 90 o más.',
+          tipoProgreso: TipoProgreso.racha,
+          meta: 3,
+          progreso: 1,
+          completado: false,
+          puntos: 250,
+        ),
+        Desafio(
+          codigo: 'sin_giros_agresivos',
+          tipo: TipoDesafio.puntoDebil,
+          nombre: 'Sin giros agresivos',
+          descripcion: 'Haz 3 viajes de 5 km o más sin giros agresivos.',
+          tipoProgreso: TipoProgreso.viajes,
+          meta: 3,
+          progreso: 2,
+          completado: false,
+          puntos: 200,
+          categoria: CategoriaPuntaje.giros,
+        ),
+      ],
+    );
+
+    testWidgets('completados, tiempo restante y avance; abre los desafíos', (
+      tester,
+    ) async {
+      // Domingo 4 a las 15: la semana termina el lunes 5 a medianoche
+      await _mostrar(tester, desafios: semana);
+
+      expect(find.text('Desafíos de la semana'), findsOneWidget);
+      expect(find.text('1 de 3 completados · Quedan 9 h'), findsOneWidget);
+      expect(find.text('Semana activa'), findsOneWidget);
+      expect(find.text('5 de 5 viajes'), findsOneWidget);
+      expect(find.text('Racha actual: 1 de 3'), findsOneWidget);
+      expect(find.text('2 de 3 viajes'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+
+      await tester.tap(find.text('Racha excelente'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pantalla Desafíos'), findsOneWidget);
+    });
+
+    testWidgets('"Ver todos" abre los desafíos', (tester) async {
+      await _mostrar(tester, desafios: semana);
+      await tester.tap(find.text('Ver todos'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pantalla Desafíos'), findsOneWidget);
+    });
+
+    testWidgets('sin datos (cargando, error o sin sesión), no aparece', (
+      tester,
+    ) async {
+      await _mostrar(tester);
+      expect(find.text('Desafíos de la semana'), findsNothing);
     });
   });
 

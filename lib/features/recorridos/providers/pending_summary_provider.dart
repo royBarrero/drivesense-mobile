@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_error.dart';
 import '../../auth/providers/session_provider.dart';
+import '../../gamificacion/providers/challenges_provider.dart';
+import '../../gamificacion/providers/progress_provider.dart';
 import '../../puntaje/providers/score_history_provider.dart';
 import '../../recomendaciones/models/recommendation.dart';
 import '../data/trip_local_storage.dart';
@@ -115,14 +117,16 @@ class ResumenPendienteNotifier extends AsyncNotifier<ResumenRecorrido?> {
     }
 
     // El viaje ya está en el backend: el historial, Inicio (semana, último viaje
-    // y DriveScore), Mi DriveScore (HU-17) y el comparativo (HU-20) se vuelven
-    // a cargar
+    // y DriveScore), Mi DriveScore (HU-17), el comparativo (HU-20), el nivel
+    // (HU-21) y los desafíos (HU-22) se vuelven a cargar
     void actualizarHistorial() {
       if (ref.mounted) {
         ref.invalidate(historialProvider);
         ref.invalidate(ultimoViajeProvider);
         ref.invalidate(historicoPuntajeProvider);
         ref.invalidate(comparativoPuntajeProvider);
+        ref.invalidate(progresoProvider);
+        ref.invalidate(desafiosProvider);
       }
     }
 

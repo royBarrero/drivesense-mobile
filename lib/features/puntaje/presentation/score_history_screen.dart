@@ -7,6 +7,7 @@ import '../../../app/router.dart';
 import '../../../core/design/design.dart';
 import '../../../core/widgets/label.dart';
 import '../../../core/widgets/period_chips.dart';
+import '../../../core/widgets/screen_header.dart';
 import '../../recorridos/models/trip_score.dart';
 import '../../recorridos/presentation/trip_format.dart';
 import '../../recorridos/presentation/widgets/load_error.dart';
@@ -14,7 +15,6 @@ import '../../recorridos/presentation/widgets/score_breakdown.dart';
 import '../models/score_history.dart';
 import '../providers/score_history_provider.dart';
 import 'widgets/score_chart.dart';
-import 'widgets/score_screen_parts.dart';
 import 'widgets/trend_badge.dart';
 
 /// "Mi DriveScore" (HU-17, diseño 2): promedio del periodo con su tendencia y
@@ -89,7 +89,7 @@ class _MiDriveScorePantallaState extends ConsumerState<MiDriveScorePantalla> {
               MediaQuery.paddingOf(context).bottom + Espacios.l,
             ),
             children: [
-              const CabeceraPuntaje(titulo: 'Mi DriveScore'),
+              const CabeceraPantalla(titulo: 'Mi DriveScore'),
               const SizedBox(height: Espacios.m),
               ChipsPeriodo(
                 opciones: PeriodoPuntaje.values,

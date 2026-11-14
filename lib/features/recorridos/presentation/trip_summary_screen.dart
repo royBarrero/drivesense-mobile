@@ -9,6 +9,7 @@ import '../../../core/design/design.dart';
 import '../../../core/widgets/illustration_painters.dart';
 import '../../../core/widgets/label.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../gamificacion/presentation/widgets/reward_card.dart';
 import '../../recomendaciones/presentation/widgets/recommendation_card.dart';
 import '../../recomendaciones/presentation/widgets/secondary_recommendations.dart';
 import '../models/trip.dart';
@@ -174,6 +175,15 @@ class _ResumenGuardado extends StatelessWidget {
                               sinEventos: resumen.eventos?.isEmpty ?? false,
                               alPresionar: alVerEnHistorial,
                             ),
+                            // HU-21: solo si subió de nivel o hubo logros
+                            if (estado.recompensa case final recompensa?
+                                when recompensa.hayNovedades) ...[
+                              const SizedBox(height: Espacios.m),
+                              TarjetaRecompensa(
+                                recompensa: recompensa,
+                                alPresionar: () => context.push(Rutas.logros),
+                              ),
+                            ],
                             // HU-18: llega con el puntaje (pendiente → aún no)
                             if (estado.recomendacion case final consejo?) ...[
                               const SizedBox(height: Espacios.m),

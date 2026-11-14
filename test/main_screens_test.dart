@@ -1,5 +1,8 @@
 import 'package:drivesense/app/main_shell.dart';
 import 'package:drivesense/app/theme.dart';
+import 'package:drivesense/features/gamificacion/models/progress.dart';
+import 'package:drivesense/features/gamificacion/providers/challenges_provider.dart';
+import 'package:drivesense/features/gamificacion/providers/progress_provider.dart';
 import 'package:drivesense/features/auth/models/user.dart';
 import 'package:drivesense/features/auth/providers/session_provider.dart';
 import 'package:drivesense/features/perfil/presentation/profile_screen.dart';
@@ -55,7 +58,8 @@ Future<void> _mostrar(
   EstadoViaje viaje = const SinViaje(),
   ResumenRecorrido? pendiente,
 }) async {
-  tester.view.physicalSize = const Size(1080, 2340);
+  // Alto de sobra: Perfil (con el nivel, HU-21) no cabe en el A34 sin desplazar
+  tester.view.physicalSize = const Size(1080, 4200);
   tester.view.devicePixelRatio = 2.625;
   addTearDown(tester.view.reset);
 
@@ -65,6 +69,15 @@ Future<void> _mostrar(
         sesionProvider.overrideWith(_SesionFija.new),
         viajeProvider.overrideWith(() => _ViajeFijo(viaje)),
         resumenPendienteProvider.overrideWith(() => _PendienteFijo(pendiente)),
+        // Desafíos (HU-22) sin red
+        desafiosProvider.overrideWith((ref) async => null),
+        // Nivel (HU-21) sin red
+        progresoProvider.overrideWith(
+          (ref) async => const ProgresoConductor(
+            puntos: 0,
+            nivel: Nivel(numero: 1, nombre: 'Novato', puntos: 0),
+          ),
+        ),
       ],
       child: MaterialApp(
         theme: temaClaro(),

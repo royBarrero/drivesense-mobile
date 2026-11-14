@@ -1,3 +1,4 @@
+import '../../gamificacion/models/progress.dart';
 import '../../recomendaciones/models/recommendation.dart';
 import '../../telemetria/models/event_detector.dart';
 import '../../telemetria/models/route.dart';
@@ -27,6 +28,7 @@ class Recorrido {
     this.puntaje,
     this.recomendacion,
     this.secundarias = const [],
+    this.recompensa,
   });
 
   factory Recorrido.fromJson(Map<String, dynamic> json) => Recorrido(
@@ -38,6 +40,7 @@ class Recorrido {
     secundarias: Recomendacion.listaDesdeJson(
       json['recomendaciones_secundarias'],
     ),
+    recompensa: RecompensaViaje.fromJson(json['recompensa']),
   );
 
   final int id;
@@ -55,6 +58,10 @@ class Recorrido {
 
   /// Recomendaciones secundarias (HU-19); vacía si no hay.
   final List<Recomendacion> secundarias;
+
+  /// Puntos, nivel y logros nuevos (HU-21): solo en la respuesta de un
+  /// recorrido finalizado.
+  final RecompensaViaje? recompensa;
 }
 
 /// Recorrido en curso guardado en el teléfono con sus acumulados y su ruta.

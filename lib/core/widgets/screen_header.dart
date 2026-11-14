@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../app/router.dart';
-import '../../../../core/design/design.dart';
+import '../../app/router.dart';
+import '../design/design.dart';
 
-/// Piezas comunes de Mi DriveScore (HU-17) y el comparativo (HU-20).
+/// Piezas comunes de las pantallas sobre la barra: Mi DriveScore (HU-17), el
+/// comparativo (HU-20) y los logros (HU-21).
 
 /// Tarjeta grande: `superficie`, radio 24, borde y `sombraTarjeta`.
 BoxDecoration decoracionTarjeta(ColoresDriveSense colores) => BoxDecoration(
@@ -14,9 +15,11 @@ BoxDecoration decoracionTarjeta(ColoresDriveSense colores) => BoxDecoration(
   boxShadow: colores.sombraTarjeta,
 );
 
-/// Volver en caja de 44 blanca; sin pantalla anterior, a Inicio.
+/// Volver en caja de 44 blanca; sin pantalla anterior, a [alternativa].
 class BotonVolverCaja extends StatelessWidget {
-  const BotonVolverCaja({super.key});
+  const BotonVolverCaja({super.key, this.alternativa = Rutas.inicio});
+
+  final String alternativa;
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +32,7 @@ class BotonVolverCaja extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(Radios.campo),
-        onTap: () =>
-            context.canPop() ? context.pop() : context.go(Rutas.inicio),
+        onTap: () => context.canPop() ? context.pop() : context.go(alternativa),
         child: SizedBox.square(
           dimension: Medidas.botonVolver,
           child: Icon(
@@ -45,16 +47,23 @@ class BotonVolverCaja extends StatelessWidget {
 }
 
 /// Fila superior: volver y el título de la pantalla.
-class CabeceraPuntaje extends StatelessWidget {
-  const CabeceraPuntaje({super.key, required this.titulo});
+class CabeceraPantalla extends StatelessWidget {
+  const CabeceraPantalla({
+    super.key,
+    required this.titulo,
+    this.alternativa = Rutas.inicio,
+  });
 
   final String titulo;
+
+  /// Adónde vuelve si no hay pantalla anterior.
+  final String alternativa;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const BotonVolverCaja(),
+        BotonVolverCaja(alternativa: alternativa),
         const SizedBox(width: Espacios.m),
         Expanded(
           child: Text(

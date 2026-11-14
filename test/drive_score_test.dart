@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drivesense/app/theme.dart';
+import 'package:drivesense/features/gamificacion/models/progress.dart';
 import 'package:drivesense/features/recomendaciones/models/recommendation.dart';
 import 'package:drivesense/features/recorridos/models/trip.dart';
 import 'package:drivesense/features/recorridos/models/trip_accumulator.dart';
@@ -344,6 +345,129 @@ void main() {
   });
 
   group('Pantalla de resumen', () {
+    testWidgets('recompensa (HU-21): nivel y logros nuevos', (tester) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(
+          _resumen(),
+          ResultadoViaje.finalizado,
+          puntaje: _puntaje86,
+          recompensa: const RecompensaViaje(
+            puntos: 31,
+            subioDeNivel: true,
+            nivel: Nivel(numero: 2, nombre: 'Aprendiz', puntos: 100),
+            logrosNuevos: [
+              Logro(
+                codigo: 'primer_viaje',
+                nombre: 'Primer viaje',
+                descripcion: 'Completa tu primer viaje.',
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(find.text('+31 pts'), findsOneWidget);
+      expect(find.text('¡Subiste a nivel 2: Aprendiz!'), findsOneWidget);
+      expect(find.text('Logro desbloqueado'), findsOneWidget);
+      expect(find.text('Primer viaje'), findsOneWidget);
+    });
+
+    testWidgets('recompensa con desafíos y bono (HU-23)', (tester) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(
+          _resumen(),
+          ResultadoViaje.finalizado,
+          puntaje: _puntaje86,
+          recompensa: const RecompensaViaje(
+            puntos: 33,
+            subioDeNivel: true,
+            nivel: Nivel(numero: 4, nombre: 'Conductor seguro', puntos: 600),
+            desafiosCompletados: [
+              DesafioCompletado(
+                codigo: 'semana_activa',
+                nombre: 'Semana activa',
+                puntos: 150,
+              ),
+              DesafioCompletado(
+                codigo: 'sin_giros_agresivos',
+                nombre: 'Sin giros agresivos',
+                puntos: 200,
+                categoria: CategoriaPuntaje.giros,
+              ),
+            ],
+            bono: 100,
+          ),
+        ),
+      );
+      // Arriba, el total: viaje 33 + desafíos 350 + bono 100
+      expect(find.text('+483 pts'), findsOneWidget);
+      expect(find.text('Desafío completado'), findsNWidgets(2));
+      expect(find.text('Semana activa'), findsOneWidget);
+      expect(find.text('Sin giros agresivos'), findsOneWidget);
+      expect(find.text('+150 pts'), findsOneWidget);
+      expect(find.text('+200 pts'), findsOneWidget);
+      expect(find.text('Bono semanal'), findsOneWidget);
+      expect(find.text('¡Completaste los 3 desafíos!'), findsOneWidget);
+      expect(find.text('+100 pts'), findsOneWidget);
+      expect(
+        find.text('¡Subiste a nivel 4: Conductor seguro!'),
+        findsOneWidget,
+      );
+      // El de punto débil lleva el ícono del giro
+      expect(find.byIcon(Icons.turn_right), findsOneWidget);
+    });
+
+    testWidgets('un desafío completado basta para mostrar la recompensa', (
+      tester,
+    ) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(
+          _resumen(),
+          ResultadoViaje.finalizado,
+          puntaje: _puntaje86,
+          recompensa: const RecompensaViaje(
+            puntos: 25,
+            subioDeNivel: false,
+            nivel: Nivel(numero: 2, nombre: 'Aprendiz', puntos: 100),
+            desafiosCompletados: [
+              DesafioCompletado(
+                codigo: 'viaje_perfecto',
+                nombre: 'Viaje perfecto',
+                puntos: 200,
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(find.text('+225 pts'), findsOneWidget);
+      expect(find.text('Viaje perfecto'), findsOneWidget);
+      // Sin bono ni subida de nivel
+      expect(find.text('Bono semanal'), findsNothing);
+      expect(find.textContaining('Subiste'), findsNothing);
+    });
+
+    testWidgets('recompensa sin nivel ni logros: no se muestra', (
+      tester,
+    ) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(
+          _resumen(),
+          ResultadoViaje.finalizado,
+          puntaje: _puntaje86,
+          recompensa: const RecompensaViaje(
+            puntos: 25,
+            subioDeNivel: false,
+            nivel: Nivel(numero: 2, nombre: 'Aprendiz', puntos: 100),
+          ),
+        ),
+      );
+      expect(find.text('+25 pts'), findsNothing);
+      expect(find.text('RECOMPENSA'), findsNothing);
+    });
+
     testWidgets('muestra el DriveScore y su calificación', (tester) async {
       await _mostrarResumen(
         tester,

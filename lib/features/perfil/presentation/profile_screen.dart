@@ -6,11 +6,13 @@ import '../../../core/design/design.dart';
 import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/label.dart';
 import '../../auth/providers/session_provider.dart';
+import '../../gamificacion/presentation/widgets/level_card.dart';
 import '../../recorridos/providers/trip_provider.dart';
 import '../../telemetria/providers/alert_sound_provider.dart';
 import '../../telemetria/providers/calibration_mode_provider.dart';
 
-/// Pestaña Perfil: datos del conductor y cierre de sesión.
+/// Pestaña Perfil: datos del conductor, su nivel y logros (HU-21) y cierre de
+/// sesión.
 class PerfilPantalla extends ConsumerWidget {
   const PerfilPantalla({super.key});
 
@@ -79,6 +81,9 @@ class PerfilPantalla extends ConsumerWidget {
               ],
             ),
           ),
+          // Nivel y logros (HU-21)
+          const SizedBox(height: Espacios.m),
+          const TarjetaNivel(),
           const SizedBox(height: Espacios.m),
           _Tarjeta(
             child: Column(
