@@ -26,6 +26,8 @@ abstract final class Medidas {
   static const altoBotonFormulario = 54.0;
   static const icono = 20.0;
   static const iconoPequeno = 16.0;
+  // Ícono dentro de una cápsula con texto `etiqueta` (p. ej. "Con IA")
+  static const iconoMinimo = 12.0;
   static const iconoNavegacion = 24.0;
   static const logo = 44.0;
   static const botonVolver = 44.0;

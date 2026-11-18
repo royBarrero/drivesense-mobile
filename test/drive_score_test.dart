@@ -208,6 +208,18 @@ void main() {
       expect(recomendacion.tipo, TipoEvento.giroAgresivo);
       expect(recomendacion.titulo, 'Gira con suavidad');
       expect(recomendacion.texto, 'Hubo un giro brusco.');
+      // Sin la clave (backend anterior) no es de la IA
+      expect(recomendacion.generadaPorIa, isFalse);
+      final conIa = Recorrido.fromJson({
+        ...json,
+        'recomendacion': {
+          'tipo': 'giro_agresivo',
+          'titulo': 'Curvas con calma',
+          'texto': 'Tomaste una curva a 38 km/h.',
+          'generada_por_ia': true,
+        },
+      }).recomendacion!;
+      expect(conIa.generadaPorIa, isTrue);
       // Sin eventos: el mensaje positivo no tiene tipo de evento
       final positiva = Recorrido.fromJson({
         ...json,
@@ -543,6 +555,36 @@ void main() {
       expect(find.text('Tuviste una frenada brusca.'), findsOneWidget);
       // El ícono del tipo: uno en el contador y otro en el consejo
       expect(find.byIcon(Icons.south), findsNWidgets(2));
+      // De plantilla: sin la cápsula de la IA
+      expect(find.text('CON IA'), findsNothing);
+    });
+
+    testWidgets('consejos de la IA con su cápsula', (tester) async {
+      await _mostrarResumen(
+        tester,
+        ViajeTerminado(
+          _resumen(eventos: [_frenada, _exceso]),
+          ResultadoViaje.finalizado,
+          puntaje: _puntaje(frenadas: 70, velocidad: 96),
+          recomendacion: const Recomendacion(
+            tipo: TipoEvento.frenadaBrusca,
+            titulo: 'Suelta antes el acelerador',
+            texto: 'Frenaste fuerte una vez a 52 km/h.',
+            generadaPorIa: true,
+          ),
+          secundarias: const [
+            Recomendacion(
+              tipo: TipoEvento.excesoVelocidad,
+              titulo: 'Sin apuro sobre 60',
+              texto: 'Pasaste el límite 12 segundos.',
+              generadaPorIa: true,
+            ),
+          ],
+        ),
+      );
+      // Una en "Consejo" y otra en "También puedes mejorar"
+      expect(find.text('CON IA'), findsNWidgets(2));
+      expect(find.byIcon(Icons.auto_awesome_rounded), findsNWidgets(2));
     });
 
     testWidgets('secundarias debajo de la principal (HU-19)', (tester) async {

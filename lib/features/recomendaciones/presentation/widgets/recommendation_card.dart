@@ -75,7 +75,15 @@ class TarjetaConsejo extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Etiqueta('Consejo'),
+                      Wrap(
+                        spacing: Espacios.xs,
+                        runSpacing: Espacios.xxs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Etiqueta('Consejo'),
+                          if (recomendacion.generadaPorIa) const CapsulaIA(),
+                        ],
+                      ),
                       const SizedBox(height: Espacios.xxs),
                       Text(
                         recomendacion.titulo,
@@ -106,6 +114,45 @@ class TarjetaConsejo extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Cápsula "Con IA": el consejo lo redactó la IA con los datos del viaje
+/// (docs/diseno.md). Tinte y texto de confort, un acento distinto del de los
+/// tipos de evento de la caja del ícono.
+class CapsulaIA extends StatelessWidget {
+  const CapsulaIA({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: Espacios.xs,
+        vertical: Espacios.xxs / 2,
+      ),
+      decoration: BoxDecoration(
+        color: colores.tinteConfort,
+        borderRadius: BorderRadius.circular(Radios.pildora),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.auto_awesome_rounded,
+            size: Medidas.iconoMinimo,
+            color: colores.textoEventoAceleracion,
+          ),
+          const SizedBox(width: Espacios.xxs),
+          Text(
+            'CON IA',
+            style: context.tipografia.etiqueta.copyWith(
+              color: colores.textoEventoAceleracion,
+            ),
+          ),
+        ],
       ),
     );
   }

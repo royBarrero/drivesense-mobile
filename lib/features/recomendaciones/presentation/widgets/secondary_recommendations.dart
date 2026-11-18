@@ -27,7 +27,17 @@ class ConsejosSecundarios extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Etiqueta('También puedes mejorar'),
+          // Wrap: en pantallas angostas la cápsula baja a otra línea
+          Wrap(
+            spacing: Espacios.xs,
+            runSpacing: Espacios.xxs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Etiqueta('También puedes mejorar'),
+              if (recomendaciones.any((r) => r.generadaPorIa))
+                const CapsulaIA(),
+            ],
+          ),
           for (final consejo in recomendaciones) ...[
             const SizedBox(height: Espacios.s),
             _FilaConsejo(recomendacion: consejo),

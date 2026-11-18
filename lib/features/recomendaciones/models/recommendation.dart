@@ -1,13 +1,15 @@
 import '../../telemetria/models/event_detector.dart';
 
-/// Recomendación de un viaje finalizado, generada en el backend con reglas
-/// fijas: la principal (HU-18), del tipo de evento que más restó, y las
-/// secundarias (HU-19), de los demás tipos.
+/// Recomendación de un viaje finalizado, generada en el backend: las reglas
+/// eligen la principal (HU-18), del tipo de evento que más restó, y las
+/// secundarias (HU-19), de los demás tipos; el texto lo redacta la IA con los
+/// datos del viaje o, si no está disponible, sale de una plantilla fija.
 class Recomendacion {
   const Recomendacion({
     required this.tipo,
     required this.titulo,
     required this.texto,
+    this.generadaPorIa = false,
   });
 
   /// `null` si el JSON no la trae (en curso, descartado o viaje anterior a
@@ -19,6 +21,8 @@ class Recomendacion {
       tipo: codigo == codigoSinEventos ? null : TipoEvento.desdeCodigo(codigo),
       titulo: json['titulo'] as String,
       texto: json['texto'] as String,
+      // Falso si no viene (versión anterior del backend)
+      generadaPorIa: json['generada_por_ia'] as bool? ?? false,
     );
   }
 
@@ -38,4 +42,7 @@ class Recomendacion {
   final TipoEvento? tipo;
   final String titulo;
   final String texto;
+
+  /// Título y texto redactados por la IA (se marca con `CapsulaIA`).
+  final bool generadaPorIa;
 }
