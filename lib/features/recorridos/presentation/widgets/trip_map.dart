@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/design/design.dart';
+import '../../../navegacion/models/route_plan.dart';
 import '../../../telemetria/models/event_detector.dart';
 import '../../../telemetria/models/route.dart';
 import '../../models/route_simplifier.dart';
@@ -97,7 +98,7 @@ class MapaViaje extends StatefulWidget {
 }
 
 class _MapaViajeState extends State<MapaViaje>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, _MosaicosConAviso {
   final _mapa = MapController();
   late final AnimationController _animacion;
   MapCamera? _desde;
@@ -106,12 +107,12 @@ class _MapaViajeState extends State<MapaViaje>
   late List<LatLng> _ruta;
   bool _listo = false;
 
-  /// Algún mosaico cargó: un error posterior no es falta de conexión.
-  bool _mosaicoCargado = false;
-  bool _sinConexion = false;
+  @override
+  ValueChanged<bool>? get _avisoDisponibilidad =>
+      widget.alCambiarDisponibilidad;
 
-  /// Cambia al reintentar, para volver a crear el mapa.
-  int _intento = 0;
+  @override
+  void _alReintentarMapa() => _listo = false;
 
   @override
   void initState() {
@@ -234,22 +235,6 @@ class _MapaViajeState extends State<MapaViaje>
     );
   }
 
-  void _alFallarMosaico() {
-    if (_mosaicoCargado || _sinConexion || !mounted) return;
-    setState(() => _sinConexion = true);
-    widget.alCambiarDisponibilidad?.call(false);
-  }
-
-  void _reintentar() {
-    setState(() {
-      _sinConexion = false;
-      _mosaicoCargado = false;
-      _listo = false;
-      _intento++;
-    });
-    widget.alCambiarDisponibilidad?.call(true);
-  }
-
   @override
   Widget build(BuildContext context) {
     final colores = context.colores;
@@ -280,18 +265,7 @@ class _MapaViajeState extends State<MapaViaje>
         },
       ),
       children: [
-        TileLayer(
-          urlTemplate: _Proveedor.urlMosaicos,
-          userAgentPackageName: _Proveedor.paqueteApp,
-          tileBuilder: (context, mosaico, imagen) {
-            if (imagen.loadFinishedAt != null && !imagen.loadError) {
-              _mosaicoCargado = true;
-            }
-            return mosaico;
-          },
-          errorTileCallback: (imagen, error, traza) => WidgetsBinding.instance
-              .addPostFrameCallback((_) => _alFallarMosaico()),
-        ),
+        _capaMosaicos(),
         PolylineLayer(
           polylines: [
             Polyline(
@@ -382,6 +356,311 @@ class _MapaViajeState extends State<MapaViaje>
         ),
       ],
     ];
+  }
+}
+
+/// Mosaicos de OpenStreetMap con el aviso "Sin conexión": si fallan sin que
+/// haya cargado ninguno, el mapa se reemplaza por el aviso con "Reintentar".
+mixin _MosaicosConAviso<T extends StatefulWidget> on State<T> {
+  /// Algún mosaico cargó: un error posterior no es falta de conexión.
+  bool _mosaicoCargado = false;
+  bool _sinConexion = false;
+
+  /// Cambia al reintentar, para volver a crear el mapa.
+  int _intento = 0;
+
+  ValueChanged<bool>? get _avisoDisponibilidad;
+
+  /// Lo que el mapa reinicia al reintentar (dentro del `setState`).
+  void _alReintentarMapa() {}
+
+  TileLayer _capaMosaicos() => TileLayer(
+    urlTemplate: _Proveedor.urlMosaicos,
+    userAgentPackageName: _Proveedor.paqueteApp,
+    tileBuilder: (context, mosaico, imagen) {
+      if (imagen.loadFinishedAt != null && !imagen.loadError) {
+        _mosaicoCargado = true;
+      }
+      return mosaico;
+    },
+    errorTileCallback: (imagen, error, traza) =>
+        WidgetsBinding.instance.addPostFrameCallback((_) => _alFallarMosaico()),
+  );
+
+  void _alFallarMosaico() {
+    if (_mosaicoCargado || _sinConexion || !mounted) return;
+    setState(() => _sinConexion = true);
+    _avisoDisponibilidad?.call(false);
+  }
+
+  void _reintentar() {
+    setState(() {
+      _sinConexion = false;
+      _mosaicoCargado = false;
+      _intento++;
+      _alReintentarMapa();
+    });
+    _avisoDisponibilidad?.call(true);
+  }
+}
+
+/// Acciones sobre el mapa del Copiloto desde la pantalla.
+class ControladorMapaDestino {
+  _MapaDestinoState? _estado;
+
+  /// Encuadra la ubicación, el destino y la ruta (lo que haya).
+  void encuadrar() => _estado?._encuadrar();
+
+  /// Vuelve a seguir la ubicación (viaje con Copiloto, HU-31).
+  void centrar() => _estado?._centrar();
+}
+
+/// Zoom inicial, centrado en la ubicación (unas cuadras a la redonda).
+const _zoomUbicacion = 15.0;
+
+/// Mapa del Copiloto (HU-30): la ubicación actual, el destino y la ruta
+/// planeada. Tocar o mantener pulsado el mapa elige el destino
+/// ([alElegirDestino]). Igual que [MapaViaje], recibe solo datos de la app.
+///
+/// Durante el viaje (HU-31), con [seguir] la cámara acompaña a [ubicacion] y
+/// [recorrido] es el tramo ya hecho, en gris; si el conductor mueve el mapa,
+/// se avisa con [alMoverManual] y deja de seguir hasta `centrar()`.
+class MapaDestino extends StatefulWidget {
+  const MapaDestino({
+    super.key,
+    required this.ubicacion,
+    this.alElegirDestino,
+    this.destino,
+    this.trazado = const [],
+    this.recorrido = const [],
+    this.seguir = false,
+    this.alMoverManual,
+    this.relleno = EdgeInsets.zero,
+    this.controlador,
+    this.alCambiarDisponibilidad,
+  });
+
+  final Coordenada ubicacion;
+
+  /// Nulo durante el viaje: el destino ya no se elige en el mapa.
+  final ValueChanged<Coordenada>? alElegirDestino;
+
+  /// Tramo de la ruta ya recorrido (en gris).
+  final List<Coordenada> recorrido;
+
+  /// La cámara sigue a [ubicacion].
+  final bool seguir;
+
+  final VoidCallback? alMoverManual;
+  final Coordenada? destino;
+
+  /// Ruta planeada; vacía mientras no hay o se está calculando.
+  final List<Coordenada> trazado;
+
+  /// Zona que tapan los controles de la pantalla.
+  final EdgeInsets relleno;
+
+  final ControladorMapaDestino? controlador;
+  final ValueChanged<bool>? alCambiarDisponibilidad;
+
+  @override
+  State<MapaDestino> createState() => _MapaDestinoState();
+}
+
+class _MapaDestinoState extends State<MapaDestino> with _MosaicosConAviso {
+  final _mapa = MapController();
+  bool _listo = false;
+
+  @override
+  ValueChanged<bool>? get _avisoDisponibilidad =>
+      widget.alCambiarDisponibilidad;
+
+  @override
+  void _alReintentarMapa() => _listo = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controlador?._estado = this;
+  }
+
+  @override
+  void didUpdateWidget(MapaDestino anterior) {
+    super.didUpdateWidget(anterior);
+    if (anterior.controlador != widget.controlador) {
+      anterior.controlador?._estado = null;
+      widget.controlador?._estado = this;
+    }
+    if (widget.seguir) {
+      if (anterior.ubicacion != widget.ubicacion || !anterior.seguir) {
+        _centrar();
+      }
+      return;
+    }
+    // Llegó la ruta: se encuadra entera
+    if (!identical(anterior.trazado, widget.trazado) &&
+        widget.trazado.isNotEmpty) {
+      _encuadrar();
+    }
+  }
+
+  /// Zoom al seguir la ubicación durante el viaje.
+  static const _zoomSeguir = 17.0;
+
+  void _centrar() {
+    if (!_listo) return;
+    _mapa.move(_punto(widget.ubicacion), _zoomSeguir);
+  }
+
+  @override
+  void dispose() {
+    if (widget.controlador?._estado == this) widget.controlador?._estado = null;
+    _mapa.dispose();
+    super.dispose();
+  }
+
+  static LatLng _punto(Coordenada c) => LatLng(c.latitud, c.longitud);
+
+  void _encuadrar() {
+    if (!_listo) return;
+    final puntos = [
+      _punto(widget.ubicacion),
+      if (widget.destino case final destino?) _punto(destino),
+      for (final punto in widget.trazado) _punto(punto),
+    ];
+    final limites = LatLngBounds.fromPoints(puntos);
+    if (limites.north == limites.south && limites.east == limites.west) {
+      _mapa.move(limites.center, _zoomUbicacion);
+      return;
+    }
+    _mapa.fitCamera(
+      CameraFit.coordinates(
+        coordinates: puntos,
+        padding: widget.relleno + const EdgeInsets.all(Espacios.xl),
+        maxZoom: _zoomRuta,
+      ),
+    );
+  }
+
+  void _elegir(LatLng punto) =>
+      widget.alElegirDestino?.call(Coordenada(punto.latitude, punto.longitude));
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    if (_sinConexion) {
+      return _AvisoSinConexion(
+        relleno: widget.relleno,
+        alReintentar: _reintentar,
+      );
+    }
+    final destino = widget.destino;
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: FlutterMap(
+            key: ValueKey(_intento),
+            mapController: _mapa,
+            options: MapOptions(
+              initialCenter: _punto(widget.ubicacion),
+              initialZoom: widget.seguir ? _zoomSeguir : _zoomUbicacion,
+              minZoom: _Proveedor.zoomMinimo,
+              maxZoom: _Proveedor.zoomMaximo,
+              backgroundColor: colores.superficieAlt,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+              onTap: (_, punto) => _elegir(punto),
+              onLongPress: (_, punto) => _elegir(punto),
+              onPositionChanged: (_, conGesto) {
+                if (conGesto) widget.alMoverManual?.call();
+              },
+              onMapReady: () {
+                _listo = true;
+                if (!widget.seguir && widget.trazado.isNotEmpty) _encuadrar();
+              },
+            ),
+            children: [
+              _capaMosaicos(),
+              if (widget.recorrido.length >= 2)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: [for (final p in widget.recorrido) _punto(p)],
+                      strokeWidth: 5,
+                      color: colores.rutaHecha,
+                      borderStrokeWidth: 3,
+                      borderColor: colores.bordeRuta,
+                    ),
+                  ],
+                ),
+              if (widget.trazado.length >= 2)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: [for (final p in widget.trazado) _punto(p)],
+                      strokeWidth: 5,
+                      color: colores.rutaPlaneada,
+                      borderStrokeWidth: 3,
+                      borderColor: colores.bordeRuta,
+                    ),
+                  ],
+                ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _punto(widget.ubicacion),
+                    width: Medidas.haloUbicacion,
+                    height: Medidas.haloUbicacion,
+                    child: const _MarcadorUbicacion(),
+                  ),
+                  if (destino != null)
+                    Marker(
+                      point: _punto(destino),
+                      width: Medidas.marcadorEvento,
+                      height: Medidas.marcadorEvento,
+                      child: const _MarcadorFin(),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          right: widget.relleno.right + Espacios.xs,
+          bottom: widget.relleno.bottom + Espacios.xs,
+          child: const _Atribucion(),
+        ),
+      ],
+    );
+  }
+}
+
+/// Ubicación actual: punto en el color de la ruta planeada con borde blanco y
+/// un halo.
+class _MarcadorUbicacion extends StatelessWidget {
+  const _MarcadorUbicacion();
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    return Container(
+      decoration: BoxDecoration(
+        color: colores.haloUbicacion,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: Medidas.marcadorUbicacion,
+        height: Medidas.marcadorUbicacion,
+        decoration: BoxDecoration(
+          color: colores.rutaPlaneada,
+          shape: BoxShape.circle,
+          border: Border.all(color: colores.superficie, width: 3),
+          boxShadow: colores.sombraTarjeta,
+        ),
+      ),
+    );
   }
 }
 

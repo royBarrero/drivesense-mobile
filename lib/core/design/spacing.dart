@@ -93,6 +93,16 @@ abstract final class Medidas {
   static const superposicionMapaResumen = 64.0;
   static const circuloCheckResumen = 56.0;
 
+  // Copiloto, HU-30 (docs/diseno.md, 7.1)
+  static const marcadorUbicacion = 18.0;
+  static const haloUbicacion = 44.0;
+  static const altoBarraBusqueda = 44.0;
+
+  // Viaje con Copiloto, HU-31 (docs/diseno.md, 7.1)
+  static const cajaManiobra = 64.0;
+  static const iconoManiobra = 40.0;
+  static const altoCapsulaVelocidad = 64.0;
+
   // Pantallas de autenticación (docs/diseno.md, 4.2)
   static const superposicionTarjeta = 56.0;
   static const altoEncabezadoLogin = 392.0;

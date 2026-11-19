@@ -3,6 +3,7 @@ import 'package:drivesense/app/theme.dart';
 import 'package:drivesense/core/api/api_error.dart';
 import 'package:drivesense/features/auth/models/user.dart';
 import 'package:drivesense/features/auth/providers/session_provider.dart';
+import 'package:drivesense/features/navegacion/models/route_plan.dart';
 import 'package:drivesense/features/recomendaciones/models/recommendation.dart';
 import 'package:drivesense/features/recomendaciones/presentation/widgets/recommendation_card.dart';
 import 'package:drivesense/features/recomendaciones/presentation/widgets/secondary_recommendations.dart';
@@ -82,6 +83,7 @@ RecorridoHistorial _recorrido(
   List<EventoRiesgo>? eventos,
   Recomendacion? recomendacion,
   List<Recomendacion> secundarias = const [],
+  Destino? destino,
 }) => RecorridoHistorial(
   id: id,
   salida: salida,
@@ -96,6 +98,7 @@ RecorridoHistorial _recorrido(
   eventos: eventos,
   recomendacion: recomendacion,
   secundarias: secundarias,
+  destino: destino,
 );
 
 List<PuntoRuta> _ruta(DateTime salida) => [
@@ -320,6 +323,91 @@ void main() {
   });
 
   group('Detalle del viaje', () {
+    const cristo = Destino(
+      nombre: 'Cristo Redentor',
+      posicion: Coordenada(-17.7676, -63.1975),
+    );
+
+    testWidgets('con destino (HU-30): la fila del destino', (tester) async {
+      final repositorio = _RepositorioFalso(
+        paginas: (_) => _vacia(),
+        detalle: (id) => _recorrido(id, tarde, destino: cristo),
+      );
+      await _mostrar(
+        tester,
+        const DetalleViajePantalla(recorridoId: 3),
+        repositorio,
+      );
+      expect(find.byType(LineaDestino), findsOneWidget);
+      expect(
+        find.text('Destino: Cristo Redentor', findRichText: true),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('con destino y ruta: la fila va en la tarjeta del mapa', (
+      tester,
+    ) async {
+      final repositorio = _RepositorioFalso(
+        paginas: (_) => _vacia(),
+        detalle: (id) =>
+            _recorrido(id, tarde, ruta: _ruta(tarde), destino: cristo),
+      );
+      await _mostrar(
+        tester,
+        const DetalleViajePantalla(recorridoId: 3),
+        repositorio,
+      );
+      expect(find.byType(MapaViaje), findsOneWidget);
+      expect(
+        find.text('Destino: Cristo Redentor', findRichText: true),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('recorrido libre: sin fila de destino', (tester) async {
+      final repositorio = _RepositorioFalso(
+        paginas: (_) => _vacia(),
+        detalle: (id) => _recorrido(id, tarde, ruta: _ruta(tarde)),
+      );
+      await _mostrar(
+        tester,
+        const DetalleViajePantalla(recorridoId: 3),
+        repositorio,
+      );
+      expect(find.byType(LineaDestino), findsNothing);
+    });
+
+    test('lee el destino del detalle', () {
+      final recorrido = RecorridoHistorial.fromJson({
+        'id': 3,
+        'fecha_inicio': '2026-11-19T18:30:00Z',
+        'fecha_fin': '2026-11-19T18:48:00Z',
+        'distancia_m': 7400,
+        'duracion_s': 1080,
+        'velocidad_maxima_kmh': 62,
+        'velocidad_promedio_kmh': 24,
+        'drivescore': null,
+        'destino': {
+          'nombre': 'Cristo Redentor',
+          'lat': -17.7676,
+          'lon': -63.1975,
+        },
+      });
+      expect(recorrido.destino?.nombre, 'Cristo Redentor');
+      final libre = RecorridoHistorial.fromJson({
+        'id': 4,
+        'fecha_inicio': '2026-11-19T18:30:00Z',
+        'fecha_fin': '2026-11-19T18:48:00Z',
+        'distancia_m': 7400,
+        'duracion_s': 1080,
+        'velocidad_maxima_kmh': 62,
+        'velocidad_promedio_kmh': 24,
+        'destino': null,
+      });
+      expect(libre.destino, isNull);
+    });
+
     testWidgets('muestra salida, llegada y métricas', (tester) async {
       final repositorio = _RepositorioFalso(
         paginas: (_) => _vacia(),

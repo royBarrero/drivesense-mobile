@@ -8,12 +8,12 @@ import '../../../core/design/design.dart';
 import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/illustration_painters.dart';
 import '../../../core/widgets/label.dart';
+import '../../navegacion/presentation/widgets/trip_type_sheet.dart';
 import '../models/trip_history.dart';
 import '../providers/trip_history_provider.dart';
 import '../providers/trip_provider.dart';
 import 'trip_format.dart';
 import 'widgets/load_error.dart';
-import 'widgets/location_permission_flow.dart';
 import 'widgets/trip_row.dart';
 
 /// Pestaña Viajes: historial de viajes finalizados (HU-06).
@@ -390,7 +390,7 @@ class _SinViajesState extends ConsumerState<_SinViajes> {
       _error = null;
     });
     try {
-      await iniciarViaje(context, ref);
+      await iniciarRecorrido(context, ref);
     } on ErrorRecorrido catch (e) {
       if (mounted) setState(() => _error = e.mensaje);
     } finally {

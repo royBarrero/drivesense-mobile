@@ -63,6 +63,9 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     required this.lineasSobreGradiente,
     required this.bordeRuta,
     required this.fondoAtribucion,
+    required this.rutaPlaneada,
+    required this.haloUbicacion,
+    required this.rutaHecha,
     required this.sombraTarjeta,
     required this.sombraBotonPrimario,
     required this.sombraBotonAcento,
@@ -137,6 +140,15 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
   final Color bordeRuta;
   final Color fondoAtribucion;
 
+  /// Ruta planeada del Copiloto (HU-30), distinta de la recorrida (degradado).
+  final Color rutaPlaneada;
+
+  /// Halo del punto de la ubicación actual en el mapa del Copiloto.
+  final Color haloUbicacion;
+
+  /// Tramo de la ruta planeada ya recorrido (HU-31).
+  final Color rutaHecha;
+
   final List<BoxShadow> sombraTarjeta;
   final List<BoxShadow> sombraBotonPrimario;
   final List<BoxShadow> sombraBotonAcento;
@@ -206,6 +218,9 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     lineasSobreGradiente: Color(0x59FFFFFF),
     bordeRuta: Color(0x400B2A22),
     fondoAtribucion: Color(0xCCFFFFFF),
+    rutaPlaneada: Color(0xFF0EA5E9),
+    haloUbicacion: Color(0x400EA5E9),
+    rutaHecha: Color(0xFF9CA3AF),
     // blurRadius 16 en Flutter ≈ blur 20px de CSS (ver docs/diseno.md 3.3)
     sombraTarjeta: [
       BoxShadow(color: Color(0x0F000000), offset: Offset(0, 4), blurRadius: 16),
@@ -280,6 +295,9 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
     Color? lineasSobreGradiente,
     Color? bordeRuta,
     Color? fondoAtribucion,
+    Color? rutaPlaneada,
+    Color? haloUbicacion,
+    Color? rutaHecha,
     List<BoxShadow>? sombraTarjeta,
     List<BoxShadow>? sombraBotonPrimario,
     List<BoxShadow>? sombraBotonAcento,
@@ -349,6 +367,9 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       lineasSobreGradiente: lineasSobreGradiente ?? this.lineasSobreGradiente,
       bordeRuta: bordeRuta ?? this.bordeRuta,
       fondoAtribucion: fondoAtribucion ?? this.fondoAtribucion,
+      rutaPlaneada: rutaPlaneada ?? this.rutaPlaneada,
+      haloUbicacion: haloUbicacion ?? this.haloUbicacion,
+      rutaHecha: rutaHecha ?? this.rutaHecha,
       sombraTarjeta: sombraTarjeta ?? this.sombraTarjeta,
       sombraBotonPrimario: sombraBotonPrimario ?? this.sombraBotonPrimario,
       sombraBotonAcento: sombraBotonAcento ?? this.sombraBotonAcento,
@@ -443,6 +464,9 @@ class ColoresDriveSense extends ThemeExtension<ColoresDriveSense> {
       lineasSobreGradiente: c(lineasSobreGradiente, other.lineasSobreGradiente),
       bordeRuta: c(bordeRuta, other.bordeRuta),
       fondoAtribucion: c(fondoAtribucion, other.fondoAtribucion),
+      rutaPlaneada: c(rutaPlaneada, other.rutaPlaneada),
+      haloUbicacion: c(haloUbicacion, other.haloUbicacion),
+      rutaHecha: c(rutaHecha, other.rutaHecha),
       sombraTarjeta: s(sombraTarjeta, other.sombraTarjeta),
       sombraBotonPrimario: s(sombraBotonPrimario, other.sombraBotonPrimario),
       sombraBotonAcento: s(sombraBotonAcento, other.sombraBotonAcento),

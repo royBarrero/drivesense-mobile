@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:drivesense/core/api/api_error.dart';
+import 'package:drivesense/features/navegacion/models/route_plan.dart';
 import 'package:drivesense/features/recorridos/data/trips_repository.dart';
 import 'package:drivesense/features/recorridos/models/trip.dart';
 import 'package:drivesense/features/recorridos/models/trip_history.dart';
@@ -74,6 +75,35 @@ void main() {
       '2026-09-27T20:00:00.000Z',
     );
   });
+
+  test(
+    'iniciar envía el destino del Copiloto solo si lo hay (HU-30)',
+    () async {
+      final adaptador = _AdaptadorFijo(201, {
+        ..._recorrido,
+        'estado': 'en_curso',
+      });
+      await _repositorio(adaptador).iniciar(
+        latitud: -17.78,
+        longitud: -63.18,
+        destino: const Destino(
+          nombre: 'Cristo Redentor',
+          posicion: Coordenada(-17.7676, -63.1975),
+        ),
+      );
+      expect((adaptador.ultimaPeticion!.data as Map)['destino'], {
+        'nombre': 'Cristo Redentor',
+        'lat': -17.7676,
+        'lon': -63.1975,
+      });
+
+      await _repositorio(adaptador).iniciar(latitud: -17.78, longitud: -63.18);
+      expect(
+        (adaptador.ultimaPeticion!.data as Map).containsKey('destino'),
+        isFalse,
+      );
+    },
+  );
 
   test('un 409 llega como ErrorApi con el detail del backend', () async {
     final adaptador = _AdaptadorFijo(409, {

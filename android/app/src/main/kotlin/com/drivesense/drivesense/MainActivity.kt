@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Build
@@ -16,11 +17,20 @@ import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.util.Log
+import java.util.Locale
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    /// Voz del Copiloto y del Modo aprendizaje (HU-31). Se crea al primer uso.
+    private var voz: TextToSpeech? = null
+    private var vozLista = false
+    private var focoAudio: AudioFocusRequest? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "drivesense/sistema")
@@ -49,9 +59,110 @@ class MainActivity : FlutterActivity() {
                         )
                         resultado.success(null)
                     }
+                    // Copiloto por voz y Modo aprendizaje (HU-31). `prioridad`: una
+                    // indicación de ruta corta lo que se estaba diciendo; un consejo
+                    // espera su turno.
+                    "hablar" -> {
+                        hablar(
+                            llamada.argument<String>("texto") ?: "",
+                            llamada.argument<Boolean>("prioridad") == true,
+                        )
+                        resultado.success(null)
+                    }
+                    "callarVoz" -> {
+                        voz?.stop()
+                        soltarFoco()
+                        resultado.success(null)
+                    }
                     else -> resultado.notImplemented()
                 }
             }
+    }
+
+    /// Habla en español con la voz del teléfono. Pide el foco de audio con
+    /// atenuación: la música baja mientras habla y vuelve al terminar.
+    private fun hablar(texto: String, prioridad: Boolean) {
+        if (texto.isBlank()) return
+        val actual = voz
+        if (actual == null) {
+            // Todavía no se creó: se crea y se dice al estar lista
+            voz = TextToSpeech(applicationContext) { estado ->
+                vozLista = estado == TextToSpeech.SUCCESS && configurarVoz()
+                if (vozLista) decir(texto, prioridad)
+            }
+            return
+        }
+        if (vozLista) decir(texto, prioridad)
+    }
+
+    /// Español de Bolivia o, si el teléfono no lo tiene, de Estados Unidos o el
+    /// genérico. `false` si no hay ninguna voz en español.
+    private fun configurarVoz(): Boolean {
+        val tts = voz ?: return false
+        val idiomas = listOf(Locale.forLanguageTag("es-BO"), Locale.forLanguageTag("es-US"), Locale("es"))
+        val idioma = idiomas.firstOrNull {
+            tts.isLanguageAvailable(it) >= TextToSpeech.LANG_AVAILABLE
+        }
+        if (idioma == null) {
+            Log.w(ETIQUETA_LOG, "No hay voz en español instalada")
+            return false
+        }
+        tts.language = idioma
+        tts.setAudioAttributes(atributosVoz())
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(id: String?) {}
+            override fun onDone(id: String?) {
+                if (!tts.isSpeaking) soltarFoco()
+            }
+            @Deprecated("Reemplazado en la API 21, se mantiene por compatibilidad")
+            override fun onError(id: String?) {
+                soltarFoco()
+            }
+        })
+        return true
+    }
+
+    private fun decir(texto: String, prioridad: Boolean) {
+        val tts = voz ?: return
+        pedirFoco()
+        val modo = if (prioridad) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD
+        tts.speak(texto, modo, null, "drivesense-${System.nanoTime()}")
+    }
+
+    private fun atributosVoz(): AudioAttributes = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+        .build()
+
+    private fun pedirFoco() {
+        val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val pedido = focoAudio ?: AudioFocusRequest
+                .Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(atributosVoz())
+                .build()
+                .also { focoAudio = it }
+            audio.requestAudioFocus(pedido)
+        } else {
+            @Suppress("DEPRECATION")
+            audio.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        }
+    }
+
+    private fun soltarFoco() {
+        val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            focoAudio?.let { audio.abandonAudioFocusRequest(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            audio.abandonAudioFocus(null)
+        }
+    }
+
+    override fun onDestroy() {
+        voz?.shutdown()
+        voz = null
+        super.onDestroy()
     }
 
     private fun vibrar() {
@@ -139,6 +250,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private companion object {
+        const val ETIQUETA_LOG = "DriveSense"
         const val CANAL_AVISOS = "avisos_viaje"
         const val ID_VIAJE_FINALIZADO = 1001
         const val DURACION_VIBRACION_MS = 250L

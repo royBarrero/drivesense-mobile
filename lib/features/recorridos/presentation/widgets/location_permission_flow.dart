@@ -5,14 +5,20 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router.dart';
 import '../../../../core/design/design.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../navegacion/models/route_plan.dart';
 import '../../data/location_service.dart';
 import '../../providers/trip_provider.dart';
 
-/// Prepara la ubicación, inicia un viaje y abre la pantalla en vivo (Inicio y
-/// Viajes sin viajes). Lanza `ErrorRecorrido` si no se pudo iniciar.
-Future<void> iniciarViaje(BuildContext context, WidgetRef ref) async {
+/// Prepara la ubicación, inicia un viaje (con el [destino] del Copiloto, si
+/// lo hay) y abre la pantalla en vivo. Lanza `ErrorRecorrido` si no se pudo
+/// iniciar.
+Future<void> iniciarViaje(
+  BuildContext context,
+  WidgetRef ref, {
+  Destino? destino,
+}) async {
   if (!await prepararUbicacion(context, ref)) return;
-  await ref.read(viajeProvider.notifier).iniciar();
+  await ref.read(viajeProvider.notifier).iniciar(destino: destino);
   if (context.mounted) context.push(Rutas.recorrido);
 }
 

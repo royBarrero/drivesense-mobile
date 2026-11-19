@@ -7,6 +7,7 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/providers/session_provider.dart';
 import '../features/inicio/presentation/home_screen.dart';
+import '../features/navegacion/presentation/copilot_screen.dart';
 import '../features/gamificacion/presentation/achievements_screen.dart';
 import '../features/gamificacion/presentation/challenges_screen.dart';
 import '../features/perfil/presentation/profile_screen.dart';
@@ -54,6 +55,11 @@ abstract final class Rutas {
   /// Mapa completo de un viaje (HU-29): se abre con `push` y los datos en
   /// `extra` (`DatosMapaViaje`), desde el resumen o el detalle.
   static const mapaViaje = '/mapa-viaje';
+
+  /// Copiloto (HU-30): elegir el destino y ver la ruta antes de iniciar. Se
+  /// abre con `push` desde "Con destino"; al iniciar se reemplaza por el viaje
+  /// en vivo.
+  static const copiloto = '/copiloto';
 
   /// Rutas que un usuario con sesión no debe ver.
   static const _fueraDeSesion = {arranque, login, registro, cambioContrasenia};
@@ -185,6 +191,10 @@ final rutasProvider = Provider<GoRouter>((ref) {
         path: Rutas.mapaViaje,
         builder: (_, estado) =>
             MapaViajePantalla(datos: estado.extra! as DatosMapaViaje),
+      ),
+      GoRoute(
+        path: Rutas.copiloto,
+        builder: (_, _) => const CopilotoPantalla(),
       ),
       GoRoute(
         path: Rutas.cambioContrasenia,

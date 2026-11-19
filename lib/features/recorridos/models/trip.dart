@@ -1,4 +1,5 @@
 import '../../gamificacion/models/progress.dart';
+import '../../navegacion/models/route_plan.dart';
 import '../../recomendaciones/models/recommendation.dart';
 import '../../telemetria/models/event_detector.dart';
 import '../../telemetria/models/route.dart';
@@ -29,6 +30,7 @@ class Recorrido {
     this.recomendacion,
     this.secundarias = const [],
     this.recompensa,
+    this.destino,
   });
 
   factory Recorrido.fromJson(Map<String, dynamic> json) => Recorrido(
@@ -41,6 +43,7 @@ class Recorrido {
       json['recomendaciones_secundarias'],
     ),
     recompensa: RecompensaViaje.fromJson(json['recompensa']),
+    destino: Destino.fromJson(json['destino']),
   );
 
   final int id;
@@ -62,6 +65,10 @@ class Recorrido {
   /// Puntos, nivel y logros nuevos (HU-21): solo en la respuesta de un
   /// recorrido finalizado.
   final RecompensaViaje? recompensa;
+
+  /// Destino del Copiloto (HU-30); nulo en un recorrido libre. `/activo` lo
+  /// trae para retomar la guía (HU-31).
+  final Destino? destino;
 }
 
 /// Recorrido en curso guardado en el teléfono con sus acumulados y su ruta.
@@ -76,6 +83,7 @@ class ViajeActivo {
     ConstructorRuta? ruta,
     this.sinGiroscopio = false,
     List<EventoRiesgo>? eventos,
+    this.destino,
   }) : ruta = ruta ?? ConstructorRuta(),
        eventos = eventos ?? [];
 
@@ -96,6 +104,7 @@ class ViajeActivo {
       for (final evento in json['eventos'] as List<dynamic>? ?? [])
         EventoRiesgo.fromJson(evento as Map<String, dynamic>),
     ],
+    destino: Destino.fromJson(json['destino']),
   );
 
   final int recorridoId;
@@ -105,6 +114,10 @@ class ViajeActivo {
 
   /// El teléfono no tiene giroscopio: viaje sin detección de giros (HU-07).
   bool sinGiroscopio;
+
+  /// Destino del Copiloto (HU-30); nulo en un recorrido libre. Se guarda para
+  /// retomar la guía al continuar un viaje interrumpido (HU-31).
+  final Destino? destino;
 
   /// Eventos de riesgo detectados (HU-10). Por ahora solo en el teléfono: no
   /// van en el resumen.
@@ -139,6 +152,7 @@ class ViajeActivo {
     'acumulador': acumulador.toJson(),
     'sin_giroscopio': sinGiroscopio,
     'eventos': eventos,
+    'destino': ?destino?.toJson(),
   };
 }
 

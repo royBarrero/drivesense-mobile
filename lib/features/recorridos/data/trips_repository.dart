@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_error.dart';
+import '../../navegacion/models/route_plan.dart';
 import '../models/trip.dart';
 import '../models/trip_history.dart';
 import 'device_data.dart';
@@ -13,17 +14,23 @@ class RecorridosRepositorio {
 
   final Dio _dio;
 
-  /// `POST /recorridos` (HU-04), con el teléfono y la versión de la app.
-  /// 409 si ya hay uno en curso.
+  /// `POST /recorridos` (HU-04), con el teléfono y la versión de la app y,
+  /// con el Copiloto, el [destino] (HU-30). 409 si ya hay uno en curso.
   Future<Recorrido> iniciar({
     required double latitud,
     required double longitud,
+    Destino? destino,
   }) async {
     final dispositivo = await DatosDispositivo.leer();
     return _recorrido(
       () => _dio.post<Map<String, dynamic>>(
         '/recorridos',
-        data: {'lat_inicio': latitud, 'lon_inicio': longitud, ...dispositivo},
+        data: {
+          'lat_inicio': latitud,
+          'lon_inicio': longitud,
+          ...dispositivo,
+          'destino': ?destino?.toApiJson(),
+        },
       ),
     );
   }

@@ -1,3 +1,4 @@
+import '../../navegacion/models/route_plan.dart';
 import '../../recomendaciones/models/recommendation.dart';
 import '../../telemetria/models/event_detector.dart';
 import '../../telemetria/models/route.dart';
@@ -20,6 +21,7 @@ class RecorridoHistorial {
     this.eventos,
     this.recomendacion,
     this.secundarias = const [],
+    this.destino,
   });
 
   factory RecorridoHistorial.fromJson(Map<String, dynamic> json) =>
@@ -62,6 +64,7 @@ class RecorridoHistorial {
         secundarias: Recomendacion.listaDesdeJson(
           json['recomendaciones_secundarias'],
         ),
+        destino: Destino.fromJson(json['destino']),
       );
 
   final int id;
@@ -101,6 +104,10 @@ class RecorridoHistorial {
   /// Recomendaciones secundarias (HU-19): solo en el detalle; vacía si no
   /// hay.
   final List<Recomendacion> secundarias;
+
+  /// Destino elegido con el Copiloto (HU-30): solo en el detalle; nulo en un
+  /// recorrido libre.
+  final Destino? destino;
 }
 
 /// Totales de los viajes finalizados del periodo.

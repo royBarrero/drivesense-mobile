@@ -397,67 +397,85 @@ class _TarjetaFechaHoras extends StatelessWidget {
         border: Border.all(color: colores.borde),
         boxShadow: colores.sombraTarjeta,
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  FormatoViaje.fechaDetalle(recorrido.salida),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tipografia.cuerpo.copyWith(
-                    color: colores.textoSecundario,
-                  ),
-                ),
-                const SizedBox(height: Espacios.xxs),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    children: [
-                      punto(lleno: false),
-                      const SizedBox(width: Espacios.xs),
-                      Text(FormatoViaje.hora(recorrido.salida), style: hora),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Espacios.xs,
-                        ),
-                        child: Icon(
-                          Icons.arrow_right_alt_rounded,
-                          size: Medidas.icono,
-                          color: colores.textoTerciario,
-                        ),
-                      ),
-                      punto(lleno: true),
-                      const SizedBox(width: Espacios.xs),
-                      Text(FormatoViaje.hora(recorrido.llegada), style: hora),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: Espacios.s),
-          Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(text: FormatoViaje.kilometros(recorrido.distanciaM)),
-                TextSpan(
-                  text: ' km',
-                  style: tipografia.cuerpo.copyWith(
-                    color: colores.textoSecundario,
-                  ),
-                ),
-              ],
-            ),
-            style: tipografia.numeroGrande.copyWith(
-              color: colores.textoPrincipal,
-            ),
-          ),
+          _filaFechaHoras(context, hora, punto),
+          if (recorrido.destino case final destino?) ...[
+            const SizedBox(height: Espacios.s),
+            LineaDestino(nombre: destino.nombre),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _filaFechaHoras(
+    BuildContext context,
+    TextStyle hora,
+    Widget Function({required bool lleno}) punto,
+  ) {
+    final colores = context.colores;
+    final tipografia = context.tipografia;
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                FormatoViaje.fechaDetalle(recorrido.salida),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tipografia.cuerpo.copyWith(
+                  color: colores.textoSecundario,
+                ),
+              ),
+              const SizedBox(height: Espacios.xxs),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: [
+                    punto(lleno: false),
+                    const SizedBox(width: Espacios.xs),
+                    Text(FormatoViaje.hora(recorrido.salida), style: hora),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Espacios.xs,
+                      ),
+                      child: Icon(
+                        Icons.arrow_right_alt_rounded,
+                        size: Medidas.icono,
+                        color: colores.textoTerciario,
+                      ),
+                    ),
+                    punto(lleno: true),
+                    const SizedBox(width: Espacios.xs),
+                    Text(FormatoViaje.hora(recorrido.llegada), style: hora),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: Espacios.s),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: FormatoViaje.kilometros(recorrido.distanciaM)),
+              TextSpan(
+                text: ' km',
+                style: tipografia.cuerpo.copyWith(
+                  color: colores.textoSecundario,
+                ),
+              ),
+            ],
+          ),
+          style: tipografia.numeroGrande.copyWith(
+            color: colores.textoPrincipal,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -659,6 +677,10 @@ class _TarjetaSalidaLlegada extends StatelessWidget {
             'Llegada',
             recorrido.llegada,
           ),
+          if (recorrido.destino case final destino?) ...[
+            const SizedBox(height: Espacios.s),
+            LineaDestino(nombre: destino.nombre),
+          ],
         ],
       ),
     );
@@ -691,4 +713,56 @@ class _LineaPunteada extends CustomPainter {
 
   @override
   bool shouldRepaint(_LineaPunteada oldDelegate) => oldDelegate.color != color;
+}
+
+/// "Destino: Cristo Redentor" bajo las horas, en un recorrido con Copiloto
+/// (HU-30). Separada por un divisor.
+class LineaDestino extends StatelessWidget {
+  const LineaDestino({super.key, required this.nombre});
+
+  final String nombre;
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    final tipografia = context.tipografia;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Divider(height: 1, color: colores.borde),
+        const SizedBox(height: Espacios.s),
+        Row(
+          children: [
+            Icon(
+              Icons.flag_rounded,
+              size: Medidas.iconoPequeno,
+              color: colores.rutaPlaneada,
+            ),
+            const SizedBox(width: Espacios.xs),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    const TextSpan(text: 'Destino: '),
+                    TextSpan(
+                      text: nombre,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: colores.textoPrincipal,
+                      ),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tipografia.cuerpo.copyWith(
+                  color: colores.textoSecundario,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }

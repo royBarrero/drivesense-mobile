@@ -13,7 +13,12 @@ class ErrorCampo {
 ///
 /// El `mensaje` es el `detail` que manda el backend, que ya viene en español.
 class ErrorApi implements Exception {
-  const ErrorApi({required this.mensaje, this.codigo, this.errores = const []});
+  const ErrorApi({
+    required this.mensaje,
+    this.codigo,
+    this.errores = const [],
+    this.clave,
+  });
 
   final String mensaje;
 
@@ -22,6 +27,10 @@ class ErrorApi implements Exception {
 
   /// Solo en 422.
   final List<ErrorCampo> errores;
+
+  /// `codigo` del cuerpo, cuando el backend lo manda para distinguir el caso
+  /// (p. ej. `sin_ruta` en la navegación, `plan_limite`); nulo si no viene.
+  final String? clave;
 
   static const sinConexion = 'No se pudo conectar con el servidor';
 
@@ -49,10 +58,12 @@ class ErrorApi implements Exception {
               mensaje: '${error['mensaje']}',
             ),
     ];
+    final clave = datos is Map ? datos['codigo'] : null;
     return ErrorApi(
       mensaje: detail,
       codigo: respuesta.statusCode,
       errores: errores,
+      clave: clave is String ? clave : null,
     );
   }
 

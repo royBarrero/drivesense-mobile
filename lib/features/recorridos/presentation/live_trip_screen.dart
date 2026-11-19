@@ -10,8 +10,10 @@ import '../../../core/widgets/error_banner.dart';
 import '../../../core/widgets/illustration_painters.dart';
 import '../../../core/widgets/label.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../navegacion/presentation/copilot_trip_view.dart';
 import '../../telemetria/data/calibration_recorder.dart';
 import '../../telemetria/presentation/widgets/diagnostic_panel.dart';
+import '../../telemetria/presentation/widgets/learning_toggle.dart';
 import '../../telemetria/models/live_alerts.dart';
 import '../../telemetria/presentation/widgets/maneuver_mark_sheet.dart';
 import '../providers/trip_provider.dart';
@@ -95,6 +97,15 @@ class _RecorridoEnVivoPantallaState
       child: Scaffold(
         body: viaje == null
             ? const SizedBox.shrink()
+            // Con destino: la vista del Copiloto (HU-31)
+            : viaje.viaje.destino != null
+            ? VistaViajeCopiloto(
+                viaje: viaje,
+                alVolver: _volver,
+                alFinalizar: _confirmarFinalizar,
+                finalizando: _finalizando,
+                error: _error,
+              )
             : Stack(
                 children: [
                   Column(
@@ -150,6 +161,9 @@ class _RecorridoEnVivoPantallaState
                                         TarjetaEventosViaje(
                                           eventos: viaje.viaje.eventos,
                                         ),
+                                        // Modo aprendizaje (HU-31)
+                                        const SizedBox(height: Espacios.m),
+                                        const TarjetaAprendizaje(),
                                         // Solo en la versión de desarrollo (HU-07)
                                         if (kDebugMode) ...[
                                           const SizedBox(height: Espacios.m),
@@ -264,10 +278,10 @@ class BloqueVelocidadEnVivo extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        _BotonVolver(alPresionar: alVolver),
+                        BotonVolverEnVivo(alPresionar: alVolver),
                         Expanded(
                           child: Center(
-                            child: _Capsula(
+                            child: CapsulaEnVivo(
                               fondo: colores.acentoOscuroTenue,
                               color: colores.encabezadoAcento,
                               punto: true,
@@ -276,13 +290,13 @@ class BloqueVelocidadEnVivo extends StatelessWidget {
                           ),
                         ),
                         viaje.sinSenal
-                            ? _Capsula(
+                            ? CapsulaEnVivo(
                                 borde: colores.advertencia,
                                 color: colores.advertencia,
                                 icono: Icons.gps_not_fixed,
                                 texto: 'Sin señal',
                               )
-                            : _Capsula(
+                            : CapsulaEnVivo(
                                 borde: colores.encabezadoBorde,
                                 color: colores.encabezadoTextoSecundario,
                                 icono: Icons.gps_fixed,
@@ -336,7 +350,7 @@ class BloqueVelocidadEnVivo extends StatelessWidget {
                                       key: const ValueKey('exceso'),
                                       duracionS: duracionS,
                                     ),
-                                  SinAviso() => _Capsula(
+                                  SinAviso() => CapsulaEnVivo(
                                     key: const ValueKey('maxima'),
                                     fondo: colores.encabezadoSuperficie,
                                     borde: colores.encabezadoBorde,
@@ -363,8 +377,8 @@ class BloqueVelocidadEnVivo extends StatelessWidget {
   }
 }
 
-class _BotonVolver extends StatelessWidget {
-  const _BotonVolver({required this.alPresionar});
+class BotonVolverEnVivo extends StatelessWidget {
+  const BotonVolverEnVivo({super.key, required this.alPresionar});
 
   final VoidCallback alPresionar;
 
@@ -397,8 +411,8 @@ class _BotonVolver extends StatelessWidget {
 }
 
 /// Cápsula de estado sobre el bloque oscuro.
-class _Capsula extends StatelessWidget {
-  const _Capsula({
+class CapsulaEnVivo extends StatelessWidget {
+  const CapsulaEnVivo({
     super.key,
     required this.color,
     required this.texto,

@@ -111,27 +111,36 @@ List<EventoRiesgo> _eventos(List<double> velocidades, {List<int>? segundos}) {
   return captura.eventos;
 }
 
-/// 50 Hz de acelerómetro con el teléfono plano y una lectura del GPS por
-/// segundo; con [golpeEn] (s), un golpe vertical de 0,2 s.
-List<EventoRiesgo> _conSensores(List<double> velocidades, {double? golpeEn}) {
+/// 50 Hz de acelerómetro y giroscopio con el teléfono plano y una lectura del
+/// GPS por segundo; con [golpeEn] (s), un golpe vertical de 0,2 s, y con
+/// [movidoEn] (s), el teléfono girando sobre sí mismo (2 rad/s fuera de la
+/// vertical) durante 0,5 s.
+_Captura _conSensores(
+  List<double> velocidades, {
+  double? golpeEn,
+  double? movidoEn,
+}) {
   final captura = _Captura();
   for (var s = 0; s < velocidades.length; s++) {
     for (var i = 1; i <= 50; i++) {
       final t = s - 1 + i / 50;
+      final fecha = _inicio.add(Duration(milliseconds: (t * 1000).round()));
       final golpe = golpeEn != null && t >= golpeEn && t < golpeEn + 0.2;
+      final movido = movidoEn != null && t >= movidoEn && t < movidoEn + 0.5;
       captura.filtro.acelerometro(
-        MuestraSensor(
-          fecha: _inicio.add(Duration(milliseconds: (t * 1000).round())),
-          x: 0,
-          y: 0,
-          z: 9.81 + (golpe ? 8 : 0),
-        ),
+        MuestraSensor(fecha: fecha, x: 0, y: 0, z: 9.81 + (golpe ? 8 : 0)),
+      );
+      captura.filtro.giroscopio(
+        MuestraSensor(fecha: fecha, x: movido ? 2 : 0, y: 0, z: 0),
       );
     }
     captura.gps(_lectura(_inicio.add(Duration(seconds: s)), velocidades[s]));
   }
-  return captura.eventos;
+  return captura;
 }
+
+/// [kmh] en m/s.
+List<double> _ms(List<double> kmh) => [for (final v in kmh) v / 3.6];
 
 /// Reproduce un CSV de calibración (como lo graba la app): sensores y GPS,
 /// este sin posición (se usa una fija).
@@ -204,9 +213,30 @@ class _PreferenciasEnMemoria implements SharedPreferencesAsync {
 
 void main() {
   group('Frenada brusca', () {
-    test('desde 3,0 m/s² es un evento; bajo el umbral, no', () {
-      expect(_eventos([10, 10, 7, 7, 7]), hasLength(1));
-      expect(_eventos([10, 10, 7.1, 7.1, 7.1]), isEmpty);
+    test('desde 2,5 m/s² es un evento; bajo el umbral, no', () {
+      expect(_eventos([10, 10, 7.5, 7.5, 7.5]), hasLength(1));
+      expect(_eventos([10, 10, 7.6, 7.6, 7.6]), isEmpty);
+    });
+
+    test('de 20 a 5 km/h de golpe y luego detenerse es un evento', () {
+      final evento = _eventos(_ms([20, 20, 5, 0, 0, 0])).single;
+      expect(evento.velocidadPreviaMs * 3.6, closeTo(20, 1e-9));
+      expect(evento.intensidad, closeTo(15 / 3.6, 1e-9));
+    });
+
+    test('de 40 a 10 km/h en 3 s es un evento', () {
+      final evento = _eventos(_ms([40, 40, 30, 20, 10, 10, 10])).single;
+      expect(evento.velocidadPreviaMs * 3.6, closeTo(40, 1e-9));
+    });
+
+    test('una frenada suave no es evento', () {
+      // De 40 a 10 km/h en 5 s: 1,7 m/s²
+      expect(_eventos(_ms([40, 40, 34, 28, 22, 16, 10, 10, 10])), isEmpty);
+    });
+
+    test('desde menos de 10 km/h no se evalúa', () {
+      // De 9 km/h a 0 en 1 s: 2,5 m/s²
+      expect(_eventos(_ms([9, 9, 0, 0, 0])), isEmpty);
     });
 
     test('trae la intensidad, la velocidad previa y la posición', () {
@@ -239,19 +269,52 @@ void main() {
       expect(_eventos([10, 10, 0, 10, 10]), isEmpty);
     });
 
-    test('durante un bache no se evalúa', () {
+    test('un bache no la descarta: no altera la velocidad del GPS', () {
       final velocidades = <double>[10, 10, 10, 10, 10, 10, 6, 6, 6];
-      expect(_conSensores(velocidades), hasLength(1));
-      expect(_conSensores(velocidades, golpeEn: 5.5), isEmpty);
+      expect(_conSensores(velocidades).eventos, hasLength(1));
+      expect(_conSensores(velocidades, golpeEn: 5.5).eventos, hasLength(1));
+    });
+
+    test('con el teléfono movido (en la mano) también se detecta', () {
+      final velocidades = <double>[10, 10, 10, 10, 10, 10, 6, 6, 6];
+      final captura = _conSensores(velocidades, movidoEn: 5.2);
+      // El filtro sí descartó el tramo (para los giros)
+      expect(
+        captura.filtro.confiable(
+          _inicio.add(const Duration(seconds: 5)),
+          _inicio.add(const Duration(seconds: 6)),
+        ),
+        isFalse,
+      );
+      expect(captura.eventos.single.tipo, TipoEvento.frenadaBrusca);
     });
   });
 
   group('Aceleración severa', () {
     const acel = TipoEvento.aceleracionSevera;
 
-    test('desde 2,5 m/s² es un evento; bajo el umbral, no', () {
-      expect(_eventos([5, 5, 7.5, 7.5, 7.5]), hasLength(1));
-      expect(_eventos([5, 5, 7.4, 7.4, 7.4]), isEmpty);
+    test('desde 2,0 m/s² es un evento; bajo el umbral, no', () {
+      expect(_eventos([5, 5, 7, 7, 7]), hasLength(1));
+      expect(_eventos([5, 5, 6.9, 6.9, 6.9]), isEmpty);
+    });
+
+    test('de 2 a 20 km/h y luego a 30 es un evento', () {
+      final evento = _eventos(_ms([2, 2, 20, 30, 30, 30])).single;
+      expect(evento.tipo, acel);
+      expect(evento.velocidadPreviaMs * 3.6, closeTo(2, 1e-9));
+    });
+
+    test('un arranque suave no es evento', () {
+      // De 0 a 30 km/h en 8 s: 1 m/s²
+      expect(
+        _eventos(_ms([0, 0, 4, 8, 11, 15, 19, 23, 26, 30, 30, 30])),
+        isEmpty,
+      );
+    });
+
+    test('parado, el ruido del GPS no es evento', () {
+      // 0 → 7,5 km/h en 1 s es 2,1 m/s², pero no llega a 8 km/h
+      expect(_eventos(_ms([0, 0, 7.5, 7.5, 0, 0, 7.5, 7.5, 0, 0])), isEmpty);
     });
 
     test('trae la intensidad, la velocidad previa y la posición', () {
@@ -284,10 +347,11 @@ void main() {
       expect(_eventos([10, 10, 15, 10, 10]), isEmpty);
     });
 
-    test('durante un bache no se evalúa', () {
+    test('un bache o el teléfono movido no la descartan', () {
       final velocidades = <double>[5, 5, 5, 5, 5, 5, 9, 9, 9];
-      expect(_conSensores(velocidades), hasLength(1));
-      expect(_conSensores(velocidades, golpeEn: 5.5), isEmpty);
+      expect(_conSensores(velocidades).eventos, hasLength(1));
+      expect(_conSensores(velocidades, golpeEn: 5.5).eventos, hasLength(1));
+      expect(_conSensores(velocidades, movidoEn: 5.2).eventos, hasLength(1));
     });
 
     test('una frenada no bloquea la aceleración que sigue', () {
@@ -523,18 +587,19 @@ void main() {
     test('al terminar el viaje se cierra el exceso abierto con lo '
         'acumulado', () {
       final v = viaje();
-      // 8 s sobre el límite y el viaje termina sin bajar
-      conducir(v, [16, 18, 19, 21, 20, 19, 19, 19, 19, 19]);
+      // 8 s sobre el límite y el viaje termina sin bajar (cambios de
+      // 1,5 m/s por segundo: sin aceleraciones severas)
+      conducir(v, [16, 17.5, 19, 20.5, 20, 19, 19, 19, 19, 19]);
       final abierto = v.eventos.single;
       expect(abierto.enCurso, isTrue);
       expect(abierto.duracionS, 7);
-      expect(abierto.velocidadMaximaMs, 21);
+      expect(abierto.velocidadMaximaMs, 20.5);
 
       v.cerrarEventosEnCurso();
       final cerrado = v.eventos.single;
       expect(cerrado.enCurso, isFalse);
       expect(cerrado.duracionS, 7);
-      expect(cerrado.velocidadMaximaMs, 21);
+      expect(cerrado.velocidadMaximaMs, 20.5);
       expect(cerrado.fecha, abierto.fecha);
     });
 
@@ -550,15 +615,15 @@ void main() {
       final guardados = <Future<void>>[];
       // Exceso en curso: se guarda con cada aviso, como `ViajeNotifier`, y
       // la app se cierra de golpe sin que baje del límite
-      // (cambios de 2 m/s por segundo: sin aceleraciones severas)
+      // (cambios de 1,5 m/s por segundo: sin aceleraciones severas)
       conducir(v, [
         16,
-        18,
-        20,
+        17.5,
+        19,
+        20.5,
         22,
         22,
         21,
-        20,
         20,
         20,
       ], alRegistrar: () => guardados.add(almacen.guardarViaje(1, v)));
@@ -598,13 +663,18 @@ void main() {
       expect(_reproducir('parada_64.csv'), isEmpty);
     });
 
-    test('viaje 63: la frenada marcada y otra sin marcar', () {
+    test('viaje 63 (maniobras intencionales): cinco frenadas', () {
       final eventos = _de(fren, _reproducir('gps_63.csv'));
-      expect(eventos, hasLength(2));
-      expect(eventos[0].velocidadPreviaMs * 3.6, closeTo(33.0, 0.1));
-      expect(eventos[0].intensidad, closeTo(3.07, 0.01));
-      expect(eventos[1].velocidadPreviaMs * 3.6, closeTo(25.9, 0.1));
-      expect(eventos[1].intensidad, closeTo(3.22, 0.01));
+      expect(
+        [
+          for (final e in eventos)
+            (
+              (e.velocidadPreviaMs * 3.6 * 10).round() / 10,
+              (e.intensidad * 100).round() / 100,
+            ),
+        ],
+        [(20.2, 2.8), (47.6, 2.81), (43.3, 2.86), (25.9, 3.22), (24.1, 2.56)],
+      );
       for (final evento in eventos) {
         expect((evento.latitud, evento.longitud), (_latitud, _longitud));
       }
@@ -625,10 +695,13 @@ void main() {
       expect(_de(vel, _reproducir('gps_64.csv')), isEmpty);
     });
 
-    test('viaje 63: un arranque desde parado sin marcar', () {
-      final evento = _de(acel, _reproducir('gps_63.csv')).single;
-      expect(evento.velocidadPreviaMs * 3.6, closeTo(0, 0.1));
-      expect(evento.intensidad, closeTo(2.74, 0.01));
+    test('viaje 63: un tirón desde 19 km/h y un arranque desde parado', () {
+      final eventos = _de(acel, _reproducir('gps_63.csv'));
+      expect(eventos, hasLength(2));
+      expect(eventos[0].velocidadPreviaMs * 3.6, closeTo(19.4, 0.1));
+      expect(eventos[0].intensidad, closeTo(2.26, 0.01));
+      expect(eventos[1].velocidadPreviaMs * 3.6, closeTo(0, 0.1));
+      expect(eventos[1].intensidad, closeTo(2.74, 0.01));
     });
 
     test('viaje 64 (tranquilo): un arranque desde parado', () {

@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/api/api_error.dart';
 import '../../auth/providers/session_provider.dart';
 import '../../gamificacion/models/progress.dart';
+import '../../navegacion/models/route_plan.dart';
+import '../../navegacion/providers/copilot_provider.dart';
 import '../../recomendaciones/models/recommendation.dart';
 import '../../telemetria/data/calibration_recorder.dart';
 import '../../telemetria/data/event_alert_service.dart';
@@ -152,6 +154,11 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
   /// Se guardan al empezar: en `onDispose` no se puede usar `ref`.
   CapturaSensores? _sensores;
   RegistroCalibracion? _calibracion;
+  CopilotoNotifier? _copiloto;
+
+  /// Ruta que ya calculó la pantalla del Copiloto (HU-30), para el viaje que
+  /// se está iniciando: así no se pide dos veces.
+  RutaPlaneada? _rutaInicial;
 
   int? get _usuarioId => ref.read(sesionProvider).value?.id;
   AlmacenRecorrido get _almacen => ref.read(almacenRecorridoProvider);
@@ -184,11 +191,13 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
       if (local != null && local.recorridoId == activo.id) {
         return ViajeInterrumpido(local);
       }
-      // En curso en el backend pero sin datos en el teléfono: acumulados en cero
+      // En curso en el backend pero sin datos en el teléfono: acumulados en
+      // cero, con el destino del backend (HU-31)
       final viaje = ViajeActivo(
         recorridoId: activo.id,
         fechaInicioServidor: activo.fechaInicio,
         acumulador: AcumuladorRecorrido(inicio: activo.fechaInicio),
+        destino: activo.destino,
       );
       await almacen.guardarViaje(usuarioId, viaje);
       return ViajeInterrumpido(viaje);
@@ -198,9 +207,11 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
     }
   }
 
-  /// Crea el recorrido en el backend y empieza a registrar.
-  /// Los permisos y el GPS se preparan antes, desde la pantalla.
-  Future<void> iniciar() async {
+  /// Crea el recorrido en el backend y empieza a registrar; con el Copiloto
+  /// (HU-30) guarda también el [destino] y guía por voz con la [ruta] ya
+  /// calculada (HU-31). Los permisos y el GPS se preparan antes, desde la
+  /// pantalla.
+  Future<void> iniciar({Destino? destino, RutaPlaneada? ruta}) async {
     final usuarioId = _usuarioId;
     if (usuarioId == null || state.value is! SinViaje) return;
 
@@ -219,7 +230,11 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
     try {
       recorrido = await ref
           .read(recorridosRepositorioProvider)
-          .iniciar(latitud: partida.latitud, longitud: partida.longitud);
+          .iniciar(
+            latitud: partida.latitud,
+            longitud: partida.longitud,
+            destino: destino,
+          );
     } on ErrorApi catch (e) {
       // 409: hay uno en curso (p. ej. desde otro teléfono); se vuelve a
       // consultar para ofrecer continuarlo
@@ -231,7 +246,9 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
       recorridoId: recorrido.id,
       fechaInicioServidor: recorrido.fechaInicio,
       acumulador: AcumuladorRecorrido(inicio: DateTime.now()),
+      destino: destino,
     );
+    _rutaInicial = destino == null ? null : ruta;
     _procesar(viaje, partida);
     await _almacen.guardarViaje(usuarioId, viaje);
     _comenzarSeguimiento(viaje, nuevo: true);
@@ -403,11 +420,18 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
         sonido: ref.read(sonidoAvisosProvider).value ?? true,
         ahora: DateTime.now(),
       );
+      _copiloto?.evento(evento);
       _guardar(viaje);
       _publicar(viaje);
     };
     _sensores = sensores;
     if (kDebugMode) _iniciarCalibracion(viaje, nuevo: nuevo);
+    // Copiloto por voz y Modo aprendizaje (HU-31). Al continuar un viaje la
+    // ruta se vuelve a pedir desde donde está
+    final copiloto = ref.read(copilotoProvider.notifier)
+      ..comenzar(viaje, ruta: nuevo ? _rutaInicial : null);
+    _copiloto = copiloto;
+    _rutaInicial = null;
     _publicar(viaje);
 
     _suscribirLecturas(viaje);
@@ -418,6 +442,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
     _reloj = Timer.periodic(const Duration(seconds: 1), (_) {
       _segundos++;
       if (_segundos % _guardarCada == 0) _guardar(viaje);
+      _copiloto?.segundo();
       _publicar(viaje);
       // Viaje olvidado: el auto lleva detenido el tiempo límite
       final detenido = DateTime.now().difference(
@@ -447,7 +472,13 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
         _ultimaLecturaGps = lectura;
         _calibracion?.gps(lectura);
         _sensores?.gps(lectura);
-        if (_procesar(viaje, lectura)) _publicar(viaje);
+        if (_procesar(viaje, lectura)) {
+          _copiloto?.lectura(
+            lectura,
+            velocidadKmh: viaje.acumulador.velocidadActualKmh(DateTime.now()),
+          );
+          _publicar(viaje);
+        }
       },
       // GPS apagado u otro fallo: se muestra "sin señal" y se espera a que vuelva
       onError: (Object _) {},
@@ -506,6 +537,8 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
   }
 
   void _detenerSeguimiento() {
+    _copiloto?.terminar();
+    _copiloto = null;
     _reloj?.cancel();
     _reloj = null;
     _lecturas?.cancel();

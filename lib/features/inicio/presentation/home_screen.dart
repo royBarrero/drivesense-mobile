@@ -13,6 +13,7 @@ import '../../auth/providers/session_provider.dart';
 import '../../gamificacion/models/weekly_challenges.dart';
 import '../../gamificacion/presentation/widgets/challenge_widgets.dart';
 import '../../gamificacion/providers/challenges_provider.dart';
+import '../../navegacion/presentation/widgets/trip_type_sheet.dart';
 import '../../puntaje/models/score_history.dart';
 import '../../puntaje/presentation/widgets/trend_badge.dart';
 import '../../puntaje/providers/score_history_provider.dart';
@@ -120,7 +121,7 @@ class _EncabezadoYRecorridoState extends ConsumerState<_EncabezadoYRecorrido> {
     }
   }
 
-  Future<void> _iniciar() => _ejecutar(() => iniciarViaje(context, ref));
+  Future<void> _iniciar() => _ejecutar(() => iniciarRecorrido(context, ref));
 
   Future<void> _continuar() => _ejecutar(() async {
     if (!await prepararUbicacion(context, ref)) return;

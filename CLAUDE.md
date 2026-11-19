@@ -12,8 +12,8 @@ App del conductor. El contexto general del proyecto (módulos, HU, roles) está 
 
 ## Estado actual
 
-- Implementado: base de la app, login (HU-02), registro de conductor (HU-01), estructura principal con barra inferior (Inicio, Viajes, Perfil), iniciar/finalizar recorrido (HU-04, HU-05), historial de viajes (HU-06), captura de acelerómetro y giroscopio (HU-07), ruta GPS (HU-08), filtro de señal (HU-09) y detección de frenada brusca, aceleración severa, giro agresivo y exceso de velocidad (HU-10 a HU-13) y sus avisos en tiempo real (HU-14), el DriveScore del viaje en el resumen (HU-15: los eventos se envían al finalizar), su desglose por categoría en el resumen y el detalle (HU-16) y su histórico en Inicio y "Mi DriveScore" (HU-17), el mapa de la ruta con sus eventos en el resumen, el detalle y el mapa completo (HU-29) y las recomendaciones del viaje: la principal (HU-18) y las secundarias (HU-19), el comparativo entre periodos (HU-20) desde "Mi DriveScore", el nivel y los logros (HU-21) en Perfil y los desafíos semanales y su recompensa (HU-22, HU-23) en Inicio y el resumen del viaje. El cambio de contraseña temporal es **provisional** (`lib/app/placeholder_screens.dart`).
-- Navegación (`app/router.dart`): `StatefulShellRoute` con las tres pestañas (`app/main_shell.dart`) y, fuera de la barra, `/recorrido` (en vivo, se abre con `push`: "Atrás" vuelve a Inicio y el viaje sigue) y `/resumen-recorrido` (se abre con `go`). El detalle de un viaje es `/viajes/:id` (`Rutas.detalleViaje`), subruta de Viajes con el navegador raíz: tapa la barra y "atrás" vuelve a la lista. El mapa completo es `/mapa-viaje` (`Rutas.mapaViaje`), en la raíz: se abre con `push` y `extra: DatosMapaViaje`. "Mi DriveScore" es `/inicio/drivescore` (`Rutas.miDriveScore`), igual pero bajo Inicio. El comparativo es `/inicio/drivescore/comparar` (`Rutas.comparativo`), subruta de Mi DriveScore con el navegador raíz; se abre con `push`. Los logros son `/perfil/logros` (`Rutas.logros`), igual pero bajo Perfil. Los desafíos son `/inicio/desafios` (`Rutas.desafios`), igual pero bajo Inicio; se abren con `push`. Con sesión, el `redirect` solo aparta de arranque, login y registro.
+- Implementado: base de la app, login (HU-02), registro de conductor (HU-01), estructura principal con barra inferior (Inicio, Viajes, Perfil), iniciar/finalizar recorrido (HU-04, HU-05), historial de viajes (HU-06), captura de acelerómetro y giroscopio (HU-07), ruta GPS (HU-08), filtro de señal (HU-09) y detección de frenada brusca, aceleración severa, giro agresivo y exceso de velocidad (HU-10 a HU-13) y sus avisos en tiempo real (HU-14), el DriveScore del viaje en el resumen (HU-15: los eventos se envían al finalizar), su desglose por categoría en el resumen y el detalle (HU-16) y su histórico en Inicio y "Mi DriveScore" (HU-17), el mapa de la ruta con sus eventos en el resumen, el detalle y el mapa completo (HU-29) y las recomendaciones del viaje: la principal (HU-18) y las secundarias (HU-19), el comparativo entre periodos (HU-20) desde "Mi DriveScore", el nivel y los logros (HU-21) en Perfil, los desafíos semanales y su recompensa (HU-22, HU-23) en Inicio y el resumen del viaje, el Copiloto, paso 1 (HU-30): elegir un destino y ver la ruta antes de iniciar, y el Copiloto por voz y el Modo aprendizaje (HU-31). El cambio de contraseña temporal es **provisional** (`lib/app/placeholder_screens.dart`).
+- Navegación (`app/router.dart`): `StatefulShellRoute` con las tres pestañas (`app/main_shell.dart`) y, fuera de la barra, `/recorrido` (en vivo, se abre con `push`: "Atrás" vuelve a Inicio y el viaje sigue) y `/resumen-recorrido` (se abre con `go`). El detalle de un viaje es `/viajes/:id` (`Rutas.detalleViaje`), subruta de Viajes con el navegador raíz: tapa la barra y "atrás" vuelve a la lista. El mapa completo es `/mapa-viaje` (`Rutas.mapaViaje`), en la raíz: se abre con `push` y `extra: DatosMapaViaje`. "Mi DriveScore" es `/inicio/drivescore` (`Rutas.miDriveScore`), igual pero bajo Inicio. El comparativo es `/inicio/drivescore/comparar` (`Rutas.comparativo`), subruta de Mi DriveScore con el navegador raíz; se abre con `push`. Los logros son `/perfil/logros` (`Rutas.logros`), igual pero bajo Perfil. Los desafíos son `/inicio/desafios` (`Rutas.desafios`), igual pero bajo Inicio; se abren con `push`. El Copiloto es `/copiloto` (`Rutas.copiloto`, en la raíz): se abre con `push` desde la hoja "¿Cómo quieres viajar?" y, al iniciar, se reemplaza por `/recorrido` (`pushReplacement`: "Atrás" desde el viaje vuelve a Inicio). Con sesión, el `redirect` solo aparta de arranque, login y registro.
 - Login y registro comparten `EncabezadoAuth` (`features/auth/presentation/widgets/auth_header.dart`): alto fijo en el login, ajustado al contenido (mín. 240) en el registro. Las reglas de validación del registro están en `features/auth/models/register_validation.dart` y replican las del backend (p. ej. "letra" = `[A-Za-z]`, sin tildes).
 - Formularios: los errores locales se muestran solo después de salir del campo (`CampoFormulario.alPerderFoco`); los de la API (409/422) van debajo de su campo y se borran al editarlo. Los botones dentro de un campo (ojo) van con `ExcludeFocus`, porque si no, el "Siguiente" del teclado salta al botón en vez de al campo siguiente.
 - Flujo de sesión (`features/auth/providers/session_provider.dart` + `app/router.dart`): las rutas se deciden solo por `sesionProvider` (`redirect` de GoRouter). Al abrir la app, con token → `GET /auth/yo`: 200 → inicio (o cambio de contraseña si `debe_cambiar_contrasenia`); 401 → borra el token → login; sin conexión o servidor caído (5xx) → entra con el último usuario guardado (`features/auth/data/user_storage.dart`, se guarda en cada login y `/auth/yo` y se borra al cerrar sesión o con 401), y si no hay ninguno, arranque con "Reintentar" (no borra el token). Sirve para continuar un viaje abriendo la app sin señal. No navegar a mano tras login/logout: basta con cambiar el estado de la sesión.
@@ -41,29 +41,30 @@ App del conductor. El contexto general del proyecto (módulos, HU, roles) está 
 
 ### Umbrales acordados (HU-10 a HU-13)
 
-Implementados. Son un estándar para conducción urbana en autos particulares (~0,25-0,45 g, el rango habitual de las apps de telemetría y seguros), no lo que alcanza un auto en particular: un viaje normal no debe disparar eventos. Se validaron con dos viajes reales del A34 (`calibracion_63.csv` con maniobras intencionales y marcas, `calibracion_64.csv` tranquilo; fuera del repo).
+Implementados. Son un estándar para conducción urbana en autos particulares (~0,2-0,45 g, el rango habitual de las apps de telemetría y seguros), no lo que alcanza un auto en particular: un viaje normal no debe disparar eventos. Se validaron con dos viajes reales del A34 (`calibracion_63.csv` con maniobras intencionales y marcas, `calibracion_64.csv` tranquilo; fuera del repo).
 
 | Evento | Umbral | Medición | Eventos esperados (63 / 64) |
 |---|---|---|---|
-| Frenada brusca (HU-10) | ≥ 3,0 m/s² (~0,3 g) | caída de la velocidad del GPS entre lecturas seguidas (1 Hz) | 2 / 1 |
-| Aceleración severa (HU-11) | ≥ 2,5 m/s² (~0,25 g) | subida de la velocidad del GPS entre lecturas seguidas | 1 / 1 |
+| Frenada brusca (HU-10) | ≥ 2,5 m/s² (~0,25 g, −9 km/h en 1 s), si la lectura anterior iba a ≥ 10 km/h | caída de la velocidad del GPS entre lecturas seguidas (1 Hz) | 5 / 1 |
+| Aceleración severa (HU-11) | ≥ 2,0 m/s² (~0,2 g, +7,2 km/h en 1 s), si la lectura actual llega a ≥ 8 km/h | subida de la velocidad del GPS entre lecturas seguidas | 2 / 1 |
 | Giro agresivo (HU-12) | aceleración lateral ≥ 3,5 m/s² (~0,35 g), solo a más de 15 km/h | velocidad del GPS × velocidad angular del giroscopio sobre el eje vertical (gravedad estimada con una ventana de ~30 s), promediada 1 s | 1 / sin verificar |
 | Exceso de velocidad (HU-13) | > 60 km/h durante ≥ 5 s seguidos (límite fijo, sin límites por vía) | velocidad del GPS confirmada por el filtro | 1 / 0 |
 
 - Cada valor del GPS es el promedio de 1 s: la maniobra debe durar ~1 s y un golpe suelto no la dispara.
 - Un evento por maniobra: el mismo tipo no se repite hasta que el valor vuelva bajo el umbral, con al menos 3 s de separación. En el exceso de velocidad, un evento por tramo sobre el límite.
 - Un solo nivel por ahora. Si el DriveScore (HU-15/16) necesita severidad, se agrega después.
-- Entradas (de `FiltroSenal`, HU-09): HU-10/11 usan `velocidades` (diferencia entre lecturas seguidas); HU-12 usa `giroRadS` × la velocidad. Solo se evalúan intervalos `confiable(desde, hasta)`.
+- Entradas (de `FiltroSenal`, HU-09): HU-10/11 usan `velocidades` (diferencia entre lecturas seguidas); HU-12 usa `giroRadS` × la velocidad y solo evalúa intervalos `confiable(desde, hasta)`.
 - Al implementarlos: valores en `UmbralesDeteccion` y, como prueba de aceptación, pasar los dos CSV (`test/fixtures/gps_63.csv` y `gps_64.csv`, solo GPS y sin posición) y obtener exactamente los eventos de la tabla.
-- Frenadas del 63: la marcada (33 → 22 km/h, 3,07 m/s²) y otra sin marcar (26 → 14 km/h, 3,22 m/s²) que también supera los ~0,3 g; se acordó mantener el umbral.
-- Aceleraciones: en los dos viajes, un arranque desde parado (63 sin marcar: 0 → 9,9 km/h, 2,74 m/s²; 64: 0 → 12,9 km/h, 3,59 m/s²); se acordó mantener el umbral.
-- Giros: en el 63, una curva sin marcar a 59 km/h (3,51 m/s²); los tres giros marcados llegaron a 2,5-3,0 m/s² y no disparan. Se acordó mantener el umbral. El 64 no se pudo verificar: su CSV completo ya no está (solo `gps_64.csv` y `parada_64.csv`).
-- Verificado también con el `calibracion_63.csv` completo (sensores y GPS): 2 frenadas, 1 aceleración, 1 giro.
+- **Ajuste del 18-nov-2026** (antes: frenada ≥ 3,0, aceleración ≥ 2,5, ambas solo en tramos `confiable`): en un viaje real con el teléfono en la mano no se detectó un 40 → 10 km/h en ~2 s. Se bajaron los umbrales y se dejó de exigir `confiable` (mover el teléfono no altera la velocidad del GPS). Con la frenada en 2,0 el viaje tranquilo (64) sumaba 4 paradas normales (2,1-2,4 m/s²); con 2,5 queda en 1. Las velocidades mínimas evitan el ruido del GPS parado (hasta ~7 km/h); con 10 km/h en la aceleración se perdía el arranque 0 → 9,9 km/h del 63. Comparar el cambio en una ventana de varios segundos no sirve: el promedio nunca supera el segundo más fuerte.
+- Frenadas del 63: la marcada (43 → 33 → 22 km/h; se detecta en el primer tramo, 2,86 m/s²), la que antes salía sin marcar (26 → 14 km/h, 3,22 m/s²) y tres más sin marcar de 2,56-2,81 m/s². En el 64, la misma de antes (30 km/h, 3,22 m/s²).
+- Aceleraciones: en los dos viajes, un arranque desde parado (63 sin marcar: 0 → 9,9 km/h, 2,74 m/s²; 64: 0 → 12,9 km/h, 3,59 m/s²) y, en el 63, un tirón desde 19 km/h (2,26 m/s²).
+- Giros: en el 63, una curva sin marcar a 59 km/h (3,51 m/s²); los tres giros marcados llegaron a 2,5-3,0 m/s² y no disparan. Se acordó mantener el umbral. En los viajes 110 y 111 (18-nov) las curvas más fuertes llegaron a 2,2-2,9 m/s² a 15-21 km/h, que el conductor no sintió bruscas: se volvió a acordar mantener 3,5. El 64 no se pudo verificar: su CSV completo ya no está (solo `gps_64.csv` y `parada_64.csv`).
+- Verificado también con el `calibracion_63.csv` completo (sensores y GPS), con los umbrales anteriores: 2 frenadas, 1 aceleración, 1 giro.
 
 ### Detección de eventos (HU-10 a HU-13)
 
 `models/event_detector.dart`, Dart puro: `DetectorEventos` vive en `CapturaSensores` (`detector`) y se evalúa tras cada lectura del GPS (`CapturaSensores.gps`) con la última velocidad confirmada de `FiltroSenal` y la anterior. Se reinicia con la captura.
-- Cambio de velocidad `(v actual − v previa) / dt`: frenada brusca si baja ≥ 3,0 m/s², aceleración severa si sube ≥ 2,5 m/s² (`TipoEvento`: código JSON; umbrales en `UmbralesDeteccion`). No se evalúa con un hueco de más de 3 s ni si el intervalo no es `confiable`; esos intervalos no cambian el estado de la maniobra.
+- Cambio de velocidad `(v actual − v previa) / dt`: frenada brusca si baja ≥ 2,5 m/s² desde 10 km/h o más (`velocidadMinimaFrenadaKmh`), aceleración severa si sube ≥ 2,0 m/s² hasta 8 km/h o más (`velocidadMinimaAceleracionKmh`) (`TipoEvento`: código JSON; umbrales en `UmbralesDeteccion`). No se evalúa con un hueco de más de 3 s (no cambia el estado de la maniobra). **No usa `confiable`**: un bache o el teléfono movido no alteran la velocidad del GPS (igual que el exceso).
 - Giro agresivo (`evaluarGiro`, tras cada muestra del giroscopio): `|giroRadS| × última velocidad confirmada ≥ 3,5 m/s²`, solo a más de 15 km/h. No se evalúa sin giroscopio, si la velocidad tiene más de 3 s (GPS sin señal) ni si el último segundo no es `confiable`.
 - Exceso de velocidad (`_evaluarExceso`, con cada velocidad confirmada): sobre 60 km/h durante 5 s seguidos, un evento por tramo. Se crea al cumplir los 5 s (`enCurso: true`) y **se vuelve a avisar con cada lectura del tramo** con `velocidadMaximaMs` y `duracionS` (de la primera a la última lectura sobre el límite) actualizadas. Se avisa cerrado (`enCurso: false`) al bajar a 60 km/h o menos o tras un hueco de más de 3 s (el tramo vuelve a empezar). No usa `confiable` (un bache no altera la velocidad del GPS).
 - `alDetectar` recibe eventos nuevos o actualizados: `ViajeActivo.registrarEvento` reemplaza el de igual `tipo` y `fecha`. `ViajeActivo.cerrarEventosEnCurso()` cierra el exceso abierto con lo acumulado al **finalizar** (sin guardar: el viaje se borra enseguida) y al **continuar** un viaje interrumpido (y se guarda); `DetectorEventos.reiniciar()` no avisa nada.
@@ -71,7 +72,7 @@ Implementados. Son un estándar para conducción urbana en autos particulares (~
 - `EventoRiesgo`: `tipo` (`frenada_brusca` | `aceleracion_severa` | `giro_agresivo` | `exceso_velocidad`), `fecha` (en los giros, la de la muestra del giroscopio; en el exceso, la de la primera lectura sobre el límite, igual que la posición), `latitud` y `longitud` de la lectura con la que se detecta (`VelocidadFiltrada` lleva la posición), `intensidad` (siempre positiva; m/s² en frenadas, aceleraciones y giros, en el exceso, m/s de la máxima sobre el límite; JSON `intensidad`, y se lee también la clave anterior `intensidad_ms2`) y `velocidadPreviaMs` (en los giros, la velocidad durante el giro; en el exceso, la de la primera lectura sobre el límite) y, solo en el exceso, `velocidadMaximaMs`, `duracionS` y `enCurso` (JSON `velocidad_maxima_ms`, `duracion_s`, `en_curso`; un evento guardado sin ellos se lee con `null`/`false`).
 - Se guardan en `ViajeActivo.eventos` (JSON `eventos`; un viaje guardado sin la clave los lee vacíos) y el viaje se guarda en el teléfono **en cuanto se detecta o actualiza uno** (durante un exceso, cada segundo), además del guardado cada 5 s: si la app se cierra de golpe, el exceso queda con la máxima y la duración hasta la última lectura. Al continuar un viaje interrumpido se conservan.
 - Se envían al backend en el resumen del viaje (HU-15, ver "DriveScore").
-- Pruebas: `test/event_detector_test.dart`. Pendiente: probarlo en un viaje real con el A34.
+- Pruebas: `test/event_detector_test.dart` (incluye los ejemplos 20 → 5 → 0 km/h, 40 → 10 en 3 s, 2 → 20 → 30, el ruido parado y el teléfono movido). Umbrales del 18-nov verificados en dos viajes reales del A34 con el teléfono en soporte (`calibracion_110.csv` y `_111.csv`, fuera del repo, sin marcas): frenadas y aceleraciones como las percibió el conductor (110: 4 y 5; 111: 3 y 2), ningún tramo descartado salvo la vertical inicial.
 
 ### Filtro de señal (HU-09)
 
@@ -179,6 +180,103 @@ Implementados. Son un estándar para conducción urbana en autos particulares (~
   - `ResumenPendienteNotifier` ya invalida `desafiosProvider` y `progresoProvider` al recibir el viaje, así que Inicio, la pantalla de desafíos y Perfil se actualizan solos.
 - Pruebas: `test/challenges_test.dart` (modelo, textos, tiempo restante, `desde` y pantalla con un `GamificacionRepositorio` falso) y `test/home_screen_test.dart` (tarjeta de Inicio; `desafiosProvider` reemplazado, nulo por defecto). `main_screens_test.dart` también lo reemplaza.
 
+## Copiloto (HU-30, paso 1)
+
+- **Elegir el tipo de recorrido**: "Iniciar recorrido" (Inicio y Viajes vacío) llama a `iniciarRecorrido` (`features/navegacion/presentation/widgets/trip_type_sheet.dart`), que abre `HojaTipoRecorrido`. "Recorrido libre" → `iniciarViaje` como siempre; "Con destino" → `prepararUbicacion` y `push(Rutas.copiloto)`. "Volver al viaje" y "Continuar viaje" no cambian.
+- **Proveedor**: el backend (`GET /navegacion/ruta` y `GET /navegacion/lugares`) consulta a OSRM y Nominatim (por defecto, sin clave) u OpenRouteService; **la app nunca habla con el proveedor ni tiene claves**. Ruta en auto que respeta el sentido de las calles; lugares solo de Bolivia, primero los de Santa Cruz. Ver la sección "Navegación (HU-30)" del CLAUDE.md del backend (caché, cuota, errores).
+- Módulo `features/navegacion/`:
+  - `models/route_plan.dart` (Dart puro): `Coordenada`, `Destino` (`nombre`, `posicion`, `direccion`; `Destino.enMapa` con el nombre fijo "Punto en el mapa", porque el backend no tiene búsqueda inversa; `toApiJson` recorta el nombre a 150), `Lugar`, `RutaPlaneada` (`distanciaM`, `duracionS`, `trazado`, `pasos`), `PasoRuta` (`instruccion` en español, armada por el backend, `tipo`, `distanciaM`, `calle`, `salidaRotonda`), `TipoPaso` (un código desconocido = seguir recto) y `ErrorNavegacion` con `MotivoErrorNavegacion`.
+  - `data/navigation_repository.dart` (`NavegacionRepositorio`): traduce los errores con `traducirError`. Usa el `codigo` del cuerpo, que `ErrorApi` ahora lee en `clave`: `sin_ruta` → sin ruta, `sin_cuota` → sin cuota, `navegacion_desactivada` y `proveedor_caido` → no disponible. Sin respuesta o 5xx sin código → sin conexión. Los demás (401, 422) siguen como `ErrorApi`.
+  - `providers/navigation_provider.dart`: `rutaPlaneadaProvider` (familia por `(origen, destino)`) y `lugaresProvider` (por texto), `autoDispose`, `conSesion` y sin reintentos. "Reintentar" = `ref.invalidate` del mismo par.
+  - `presentation/copilot_screen.dart` (`CopilotoPantalla`):
+    - Al abrir pide la ubicación (`servicioUbicacionProvider.posicionActual()`); si falla, ofrece "Reintentar" o "Hacer un recorrido libre".
+    - El destino lo elige tocar o mantener pulsado el mapa, o la búsqueda. La ruta se pide sola al fijarlo.
+    - "Iniciar con destino" llama a `ViajeNotifier.iniciar(destino:)` y reemplaza la pantalla por la del viaje en vivo.
+    - Error de la ruta: aviso con "Reintentar" (no sin ruta) y "Recorrido libre" (inicia sin destino).
+  - El estado (ubicación, destino) vive en la pantalla: no hace falta fuera de ella en este paso.
+  - Hojas en `presentation/widgets/`:
+    - `place_search_sheet.dart` (`buscarDestino`): mínimo 3 letras y solo al enviar, sin autocompletar.
+    - `route_steps_sheet.dart` (`mostrarPasosRuta`).
+  - Textos e íconos en `presentation/route_format.dart` (`FormatoRuta`: "850 m" / "3,12 km", "7 min", como mínimo "1 min").
+- **Mapa**: `MapaDestino` vive en `recorridos/presentation/widgets/trip_map.dart`, que sigue siendo el único archivo que importa flutter_map:
+  - Ubicación, destino y ruta planeada; `alElegirDestino` al tocar o mantener pulsado.
+  - `ControladorMapaDestino.encuadrar()`; encuadra solo al llegar la ruta.
+  - Comparte con `MapaViaje` el mixin `_MosaicosConAviso` (mosaicos de OSM y aviso "Sin conexión").
+- **Recorrido con destino**:
+  - `RecorridosRepositorio.iniciar(destino:)` manda `destino` en el `POST /recorridos`; sin destino no va la clave.
+  - El viaje en curso, los eventos, el DriveScore, el resumen y el historial no cambian: el teléfono no guarda el destino.
+  - El detalle lo lee de `destino` (`RecorridoHistorial.destino`) y muestra `LineaDestino` ("Destino: …") en la tarjeta de horas, con y sin mapa.
+  - Seguir la ruta durante el viaje: ver "Copiloto por voz y Modo aprendizaje (HU-31)".
+- Pruebas:
+  - `test/copilot_test.dart`: modelo, formatos, repositorio y errores, hoja de elección, pantalla con un repositorio y una ubicación falsos (buscar, ruta y pasos, búsqueda corta y sin resultados, quitar, iniciar con destino, sin ruta → recorrido libre, sin conexión → reintentar) y tocar el mapa.
+  - `test/trip_history_test.dart`: destino en el detalle.
+  - `test/trips_repository_test.dart`: `destino` en el `POST`.
+
+## Copiloto por voz y Modo aprendizaje (HU-31)
+
+Reglas acordadas (valores urbanos; se ajustan después de probar en la calle, en `UmbralesCopiloto`, `features/navegacion/models/route_progress.dart`). No cambian el DriveScore ni los avisos visuales de HU-14.
+
+- **Voz**: `TextToSpeech` de Android en `MainActivity.kt` (métodos `hablar` `{texto, prioridad}` y `callarVoz` del canal `drivesense/sistema`; `VozCopiloto` en `telemetria/data/voice_service.dart`). Sin dependencias nuevas (`flutter_tts` traería otra dependencia de Android atada a AGP).
+  - Idioma `es-BO`, si no `es-US`, si no `es`; sin voz en español no habla (log "No hay voz en español instalada").
+  - Uso "guía de navegación" con foco de audio transitorio con atenuación: la música baja mientras habla.
+  - Funciona con la pantalla apagada (como `avisarEvento`).
+  - **Prioridad**: las indicaciones de ruta cortan lo que se esté diciendo (`QUEUE_FLUSH`); los consejos esperan su turno (`QUEUE_ADD`).
+- **Seguimiento** (`SeguidorRuta`, Dart puro): proyecta cada lectura aceptada del GPS sobre el trazado. Busca cerca del último segmento (2 atrás, 40 adelante) y, si queda a más de 30 m, en toda la ruta.
+  - Da la distancia a la ruta, lo recorrido y lo que falta. El tiempo restante es la duración de la ruta en proporción a lo que falta.
+  - Da también el paso en curso y la próxima maniobra con los metros hasta ella. La maniobra de cada paso está en su `inicio`: `PasoRuta` ganó `inicio` y `fin`.
+- **Avisos de maniobra** (`GuiaVoz`, `features/navegacion/models/voice_guide.dart`):
+  - Se avisa a **300 m** (solo si el tramo desde la maniobra anterior mide más de **400 m**), a **100 m** y "ahora" a **30 m**. Cada umbral se dice una vez por maniobra, y uno más cercano deja sin efecto los lejanos.
+  - Se dice la distancia real redondeada: a la decena bajo 100 m y a la cincuentena desde ahí ("En 90 metros").
+  - La salida no se anuncia.
+  - **Llegada** a **30 m** del destino: "Llegaste a tu destino.". No finaliza el viaje: lo hace el conductor (o la finalización automática por detenido).
+  - Frases propias en tuteo (`GuiaVoz.maniobra`), no la `instruccion` del backend (con ORS viene en "usted" y es larga); la lista de pasos de la HU-30 sí la usa. Con OSRM, el backend arma la `instruccion` con estas mismas frases. Ejemplos:
+    - "En 100 metros, gira a la derecha en Avenida Busch."
+    - "Ahora, gira cerrado a la izquierda."
+    - "En 300 metros, en la rotonda, toma la segunda salida." (ordinales en palabras hasta la décima).
+  - En pantalla, `GuiaVoz.titulo` ("Gira a la derecha").
+- **Desvío** (`DetectorDesvio`):
+  - Cuenta como desvío estar a más de **50 m** de la ruta durante **5 s**, contando solo lecturas de precisión **≤ 20 m** (las imprecisas no cuentan ni reinician).
+  - Se dice "Te saliste de la ruta. Recalculando." (una vez por desvío) y se pide la ruta desde la posición actual, como mucho **cada 20 s**. Con la ruta nueva: "Ruta actualizada.".
+  - **Sin conexión**: sigue con la última ruta y dice "Sin conexión: sigo con la última ruta, no puedo recalcular." **una sola vez** hasta que se vuelva a calcular una ruta. La cápsula del bloque pasa a "Sin conexión".
+  - Mientras está desviado no da indicaciones.
+- **Modo aprendizaje** (`ConsejeroAprendizaje`, `telemetria/models/learning_coach.dart`):
+  - **Funciona en todo recorrido**, libre o con destino.
+  - El consejo se dice **cuando la maniobra termina**:
+    - Frenada, aceleración y giro: **3 s** después del evento, si no hubo otro del mismo tipo (otro reinicia la espera).
+    - Exceso: al cerrarse el tramo (`enCurso: false`).
+    - Si terminan varios a la vez, va el de mayor riesgo (orden de la HU-18).
+  - **Giro con velocidad alta** (solo con destino): a **40 km/h** o más y a **150 m** o menos de un giro (normal o cerrado, media vuelta o rotonda; no los leves ni seguir derecho), una vez por maniobra.
+  - Como mucho **un consejo cada 15 s**. Un consejo que toca antes de ese tiempo, o a menos de **4 s** de una indicación de ruta, **se descarta** (no se encola).
+  - **Frases fijas** (`FrasesAprendizaje`; generales, sin velocidades exactas ni distancias a otros vehículos):
+    - Frenada: "Frenaste fuerte. Mira más lejos y suelta el acelerador antes para frenar con suavidad."
+    - Aceleración: "Aceleraste fuerte. Pisa el acelerador de a poco al arrancar."
+    - Giro: "Giro brusco. Reduce la velocidad antes de entrar a la curva."
+    - Exceso: "Fuiste sobre el límite. Mantén una velocidad constante y segura."
+    - Giro con velocidad: "Se acerca un giro: reduce la velocidad."
+- **Preferencias**:
+  - `modoAprendizajeProvider` (`SharedPreferencesAsync`, clave `modo_aprendizaje`, **apagado por defecto**), con su interruptor (`InterruptorAprendizaje`, `telemetria/presentation/widgets/learning_toggle.dart`):
+    - en el Copiloto, antes de iniciar;
+    - en la pantalla del viaje: el botón sobre el mapa con destino, `TarjetaAprendizaje` en el viaje libre;
+    - en Perfil.
+  - El **silencio** (`EstadoCopiloto.silenciado`) vale solo para el viaje actual, calla la guía y los consejos (`callarVoz`) y no afecta la vibración ni el sonido de HU-14.
+- **Integración** (`CopilotoNotifier`, `features/navegacion/providers/copilot_provider.dart`; nulo fuera de un viaje):
+  - `ViajeNotifier` llama a `comenzar` en `_comenzarSeguimiento`, `lectura` con cada lectura aceptada, `evento` en `alDetectar`, `segundo` con el reloj de 1 s y `terminar` en `_detenerSeguimiento`.
+  - `ViajeNotifier.iniciar(destino:, ruta:)` recibe la ruta que ya calculó el Copiloto (no se pide dos veces).
+  - **El viaje en curso guarda el destino** (`ViajeActivo.destino`, JSON `destino` con la dirección; un viaje guardado antes sigue siendo libre) y `/activo` lo trae (`Recorrido.destino`).
+  - **Al continuar un viaje interrumpido**, la ruta se pide de nuevo con la primera lectura. Si no se puede, el bloque dice "Sin ruta por ahora", la voz dice "No pude calcular la ruta. El viaje se sigue registrando." una vez y lo vuelve a intentar cada 20 s.
+- **Pantalla**: con destino, `live_trip_screen.dart` muestra `VistaViajeCopiloto` (`navegacion/presentation/copilot_trip_view.dart`, diseño en `docs/diseno.md`); sin destino, la de siempre más `TarjetaAprendizaje`. `CapsulaEnVivo` y `BotonVolverEnVivo` (antes privados) se comparten entre las dos.
+- **Mapa**: `MapaDestino` ganó `seguir` (la cámara acompaña a la ubicación, zoom 17; al recalcular no reencuadra), `recorrido` (tramo hecho en `rutaHecha`), `alMoverManual` (al moverlo deja de seguir y aparece "Centrar") y `ControladorMapaDestino.centrar()`. `alElegirDestino` es opcional.
+- Pruebas: `test/copilot_voice_test.dart`:
+  - Seguimiento y desvío.
+  - Guía: umbrales, tramo corto, rotonda y llegada.
+  - Modo aprendizaje: después de la maniobra, el exceso al cerrarse, 15 s, prioridad de la ruta y el giro con velocidad.
+  - `CopilotoNotifier` con voz y navegación falsas: guía completa, ruta al continuar, desvío, sin conexión, silencio y aprendizaje en el viaje libre.
+  - El destino del viaje en curso, la pantalla y el interruptor.
+- **Pendiente: probar en el A34**:
+  - La voz con la pantalla apagada y la música atenuada.
+  - Los avisos a 300, 100 y 30 m, la llegada y desviarse a propósito.
+  - El modo avión y el aprendizaje en un viaje libre.
+
 ## Historial (HU-06)
 
 - `providers/trip_history_provider.dart`: `historialProvider` (familia por `PeriodoHistorial`: semana desde el lunes, mes desde el día 1, todos) pide `GET /recorridos` con `desde` en UTC calculado con la zona del teléfono; `cargarMas()` pagina con `antes_de` y el mismo `desde`. Si el periodo viene vacío, una consulta de `Todos` con `limite=1` decide entre "Aún no tienes viajes" (sin filtros) y el aviso del periodo. `detalleRecorridoProvider` → `GET /recorridos/{id}`. Un 401 cierra la sesión (`pedirConSesion`).
@@ -249,7 +347,7 @@ lib/
 ```
 
 - **Nombres:** archivos y carpetas en inglés y snake_case, según su función (`login_screen.dart`, `auth_repository.dart`, `session_provider.dart`, `core/storage/`). Clases, variables y funciones en español (`LoginPantalla`, `AlmacenToken`, `iniciarSesion`). Las carpetas de módulo, en español.
-- Módulos en español sin tildes, iguales a los del backend cuando existan allí: `auth`, `recorridos`, `telemetria`, `puntaje`, `recomendaciones`, `gamificacion`, `perfil`.
+- Módulos en español sin tildes, iguales a los del backend cuando existan allí: `auth`, `recorridos`, `telemetria`, `puntaje`, `recomendaciones`, `gamificacion`, `navegacion`, `perfil`.
 - **Crear cada módulo solo cuando se implemente su primera historia.**
 - Estado con Riverpod.
 - Tema y tokens: `lib/core/design/` (`ColoresDriveSense`, `TipografiaDriveSense`, `Espacios`, `Radios`, `Medidas`; acceso con `context.colores` / `context.tipografia`); `ThemeData` en `lib/app/theme.dart`. Token nuevo → primero en `docs/diseno.md`, luego en el código.

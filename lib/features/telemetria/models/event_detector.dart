@@ -4,11 +4,21 @@ import 'signal_filter.dart';
 /// CLAUDE.md: un estándar para conducción urbana, no lo que alcanza un auto en
 /// particular.
 abstract final class UmbralesDeteccion {
-  /// Caída de la velocidad del GPS entre lecturas seguidas (~0,3 g).
-  static const frenadaBruscaMs2 = 3.0;
+  /// Caída de la velocidad del GPS entre lecturas seguidas (~0,25 g, 9 km/h
+  /// en 1 s): p. ej. de 20 a 5 km/h de golpe o de 40 a 10 km/h en 2-3 s. Con
+  /// 2,0 el viaje tranquilo de prueba (64) sumaba 4 paradas normales.
+  static const frenadaBruscaMs2 = 2.5;
 
-  /// Subida de la velocidad del GPS entre lecturas seguidas (~0,25 g).
-  static const aceleracionSeveraMs2 = 2.5;
+  /// Subida de la velocidad del GPS entre lecturas seguidas (~0,2 g, 7,2 km/h
+  /// en 1 s): p. ej. de 2 a 20 km/h en 2,5 s.
+  static const aceleracionSeveraMs2 = 2.0;
+
+  /// La frenada se evalúa solo si la lectura anterior iba al menos a esto, y
+  /// la aceleración si la actual llega al menos a esto: parado, el GPS marca
+  /// hasta ~7 km/h de ruido (con 10 km/h se perdía el arranque 0 → 9,9 km/h
+  /// del viaje 63).
+  static const velocidadMinimaFrenadaKmh = 10.0;
+  static const velocidadMinimaAceleracionKmh = 8.0;
 
   /// Aceleración lateral: velocidad del GPS × giro alrededor de la vertical
   /// (~0,35 g).
@@ -173,21 +183,21 @@ class EventoRiesgo {
 
 /// Detecta frenadas bruscas (HU-10) y aceleraciones severas (HU-11) con el
 /// cambio entre dos velocidades seguidas confirmadas por [FiltroSenal], giros
-/// agresivos (HU-12) con la velocidad × el giro alrededor de la vertical
-/// (estos tres, solo en intervalos confiables: sin bache ni teléfono movido) y
-/// excesos de velocidad (HU-13) con la velocidad sostenida sobre el límite.
+/// agresivos (HU-12) con la velocidad × el giro alrededor de la vertical (solo
+/// en intervalos confiables: sin bache ni teléfono movido) y excesos de
+/// velocidad (HU-13) con la velocidad sostenida sobre el límite. Frenadas,
+/// aceleraciones y excesos no usan `confiable`: un bache o mover el teléfono
+/// no alteran la velocidad del GPS.
 ///
 /// Un evento por maniobra: el mismo tipo no se repite hasta que su valor
 /// vuelva bajo el umbral, y nunca antes de
 /// [UmbralesDeteccion.separacionMinimaEventos]. Cada tipo lleva su propio
 /// estado: una frenada no bloquea una aceleración.
 class DetectorEventos {
-  /// Tipos que salen del cambio de velocidad, con su signo (-1 si baja, 1 si
-  /// sube) y su umbral.
-  static const _porVelocidad = [
-    (TipoEvento.frenadaBrusca, -1, UmbralesDeteccion.frenadaBruscaMs2),
-    (TipoEvento.aceleracionSevera, 1, UmbralesDeteccion.aceleracionSeveraMs2),
-  ];
+  static const _minimaFrenadaMs =
+      UmbralesDeteccion.velocidadMinimaFrenadaKmh / 3.6;
+  static const _minimaAceleracionMs =
+      UmbralesDeteccion.velocidadMinimaAceleracionKmh / 3.6;
 
   static const _limiteMs = UmbralesDeteccion.limiteVelocidadKmh / 3.6;
 
@@ -228,26 +238,28 @@ class DetectorEventos {
             UmbralesDeteccion.separacionMaximaLecturas;
     _evaluarExceso(actual, tramoNuevo: hueco);
 
-    // Con un hueco o un tramo descartado, la maniobra queda como estaba
-    if (previa == null ||
-        hueco ||
-        !filtro.confiable(previa.fecha, actual.fecha)) {
-      return;
-    }
+    // Con un hueco, la maniobra queda como estaba
+    if (previa == null || hueco) return;
 
     final intervalo = actual.fecha.difference(previa.fecha);
     final segundos = intervalo.inMicroseconds / Duration.microsecondsPerSecond;
     final cambio = (actual.velocidadMs - previa.velocidadMs) / segundos;
-    for (final (tipo, signo, umbral) in _porVelocidad) {
-      _registrar(
-        tipo,
-        intensidad: cambio * signo,
-        umbral: umbral,
-        fecha: actual.fecha,
-        lectura: actual,
-        velocidadPreviaMs: previa.velocidadMs,
-      );
-    }
+    _registrar(
+      TipoEvento.frenadaBrusca,
+      intensidad: previa.velocidadMs >= _minimaFrenadaMs ? -cambio : 0,
+      umbral: UmbralesDeteccion.frenadaBruscaMs2,
+      fecha: actual.fecha,
+      lectura: actual,
+      velocidadPreviaMs: previa.velocidadMs,
+    );
+    _registrar(
+      TipoEvento.aceleracionSevera,
+      intensidad: actual.velocidadMs >= _minimaAceleracionMs ? cambio : 0,
+      umbral: UmbralesDeteccion.aceleracionSeveraMs2,
+      fecha: actual.fecha,
+      lectura: actual,
+      velocidadPreviaMs: previa.velocidadMs,
+    );
   }
 
   /// Evalúa el giro con la muestra del giroscopio tomada en [fecha]. Se llama
