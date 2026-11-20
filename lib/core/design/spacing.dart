@@ -18,6 +18,7 @@ abstract final class Radios {
   static const encabezado = 32.0;
   static const tarjetaDestacada = 28.0;
   static const logo = 14.0;
+  static const colaBurbuja = 4.0;
 }
 
 /// Medidas fijas de componentes.
@@ -107,4 +108,7 @@ abstract final class Medidas {
   static const superposicionTarjeta = 56.0;
   static const altoEncabezadoLogin = 392.0;
   static const altoMinimoEncabezadoRegistro = 240.0;
+
+  // Asistente de ayuda (docs/diseno.md, 7.1): ancho máximo de una burbuja
+  static const fraccionAnchoBurbuja = 0.82;
 }

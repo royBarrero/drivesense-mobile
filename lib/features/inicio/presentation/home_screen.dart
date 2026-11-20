@@ -301,6 +301,8 @@ class _Encabezado extends ConsumerWidget {
                       children: [
                         const LogoDriveSense(),
                         const Spacer(),
+                        const _BotonAyuda(),
+                        const SizedBox(width: Espacios.xs),
                         Avatar(nombre: nombre, sobreOscuro: true),
                       ],
                     ),
@@ -1016,6 +1018,33 @@ class _CapsulaPuntaje extends StatelessWidget {
         style: context.tipografia.numeroMetrica.copyWith(
           fontWeight: FontWeight.w700,
           color: colorCalificacion(calificacion, colores),
+        ),
+      ),
+    );
+  }
+}
+
+/// Abre el asistente de ayuda (docs/diseno.md, 7.1: "Ayuda").
+class _BotonAyuda extends StatelessWidget {
+  const _BotonAyuda();
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    return Material(
+      color: colores.encabezadoBorde,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () => context.push(Rutas.asistente),
+        child: SizedBox.square(
+          dimension: Medidas.avatar,
+          child: Icon(
+            Icons.help_outline_rounded,
+            size: Medidas.iconoNavegacion,
+            color: colores.encabezadoAcento,
+            semanticLabel: 'Ayuda',
+          ),
         ),
       ),
     );

@@ -74,9 +74,23 @@ ColoresDriveSense get _colores => ColoresDriveSense.claro;
 
 class _AvisosFalso implements AvisosEvento {
   final avisos = <bool>[];
+  final notificaciones = <String>[];
+  var quitadas = 0;
 
   @override
   Future<void> avisar({required bool sonido}) async => avisos.add(sonido);
+
+  @override
+  Future<void> notificar({
+    required String titulo,
+    required String texto,
+  }) async {
+    expect(texto, 'Toca para volver a tu viaje.');
+    notificaciones.add(titulo);
+  }
+
+  @override
+  Future<void> quitarNotificacion() async => quitadas++;
 }
 
 void main() {
@@ -235,8 +249,10 @@ void main() {
             viaje,
             e,
             avisos: gestor,
+            notificaciones: LimitadorNotificaciones(),
             servicio: servicio,
             sonido: sonido,
+            enPantalla: true,
             ahora: _en(0),
           );
 
@@ -245,6 +261,85 @@ void main() {
       registrar(_evento(TipoEvento.giroAgresivo, 9), sonido: true);
       expect(servicio.avisos, [false, true]);
       expect(viaje.eventos, hasLength(2));
+    });
+  });
+
+  group('Notificación del sistema', () {
+    late ViajeActivo viaje;
+    late GestorAvisos gestor;
+    late LimitadorNotificaciones limitador;
+    late _AvisosFalso servicio;
+
+    setUp(() {
+      viaje = _viaje();
+      gestor = GestorAvisos();
+      limitador = LimitadorNotificaciones();
+      servicio = _AvisosFalso();
+    });
+
+    void registrar(
+      EventoRiesgo e, {
+      required int en,
+      bool enPantalla = false,
+    }) => registrarYAvisar(
+      viaje,
+      e,
+      avisos: gestor,
+      notificaciones: limitador,
+      servicio: servicio,
+      sonido: true,
+      enPantalla: enPantalla,
+      ahora: _en(en),
+    );
+
+    test('con la app en pantalla solo vibra', () {
+      registrar(_evento(TipoEvento.frenadaBrusca, 0), en: 0, enPantalla: true);
+      expect(servicio.avisos, [true]);
+      expect(servicio.notificaciones, isEmpty);
+    });
+
+    test('en segundo plano notifica con el texto del tipo', () {
+      registrar(_evento(TipoEvento.frenadaBrusca, 0), en: 0);
+      expect(servicio.avisos, [true]);
+      expect(servicio.notificaciones, ['Frenada brusca detectada']);
+    });
+
+    test('espera 30 s entre notificaciones; los demás eventos igual '
+        'vibran', () {
+      registrar(_evento(TipoEvento.frenadaBrusca, 0), en: 0);
+      registrar(_evento(TipoEvento.giroAgresivo, 10), en: 10);
+      registrar(_evento(TipoEvento.aceleracionSevera, 29), en: 29);
+      registrar(_evento(TipoEvento.giroAgresivo, 30), en: 30);
+      expect(servicio.avisos, hasLength(4));
+      expect(servicio.notificaciones, [
+        'Frenada brusca detectada',
+        'Giro agresivo detectado',
+      ]);
+    });
+
+    test('un evento en pantalla no gasta el plazo', () {
+      registrar(_evento(TipoEvento.frenadaBrusca, 0), en: 0, enPantalla: true);
+      registrar(_evento(TipoEvento.aceleracionSevera, 5), en: 5);
+      expect(servicio.notificaciones, ['Aceleración severa detectada']);
+    });
+
+    test('el exceso notifica al empezar, no con sus actualizaciones', () {
+      final exceso = _evento(
+        TipoEvento.excesoVelocidad,
+        0,
+        duracionS: 5,
+        enCurso: true,
+      );
+      registrar(exceso, en: 0);
+      registrar(exceso.copyWith(duracionS: 40), en: 35);
+      expect(servicio.notificaciones, ['Exceso de velocidad detectado']);
+    });
+
+    test('reiniciar el limitador permite notificar enseguida', () {
+      expect(limitador.permitir(_en(0)), isTrue);
+      expect(limitador.permitir(_en(1)), isFalse);
+      limitador.reiniciar();
+      expect(limitador.permitir(_en(2)), isTrue);
     });
   });
 

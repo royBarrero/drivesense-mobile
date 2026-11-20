@@ -7,3 +7,15 @@ const _canal = MethodChannel('drivesense/sistema');
 ///
 /// Cerrarla con "Atrás" detendría el servicio de ubicación de un viaje en curso.
 Future<void> enviarAppAlFondo() => _canal.invokeMethod<void>('enviarAlFondo');
+
+/// [abrir] se llama cuando el conductor toca la notificación de un evento de
+/// riesgo (`MainActivity.onNewIntent`). Con `null` deja de escuchar.
+void alTocarNotificacionEvento(void Function()? abrir) {
+  _canal.setMethodCallHandler(
+    abrir == null
+        ? null
+        : (llamada) async {
+            if (llamada.method == 'abrirRecorrido') abrir();
+          },
+  );
+}

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -150,6 +151,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
 
   /// Avisos en vivo del viaje (HU-14).
   final _avisos = GestorAvisos();
+  final _notificaciones = LimitadorNotificaciones();
 
   /// Se guardan al empezar: en `onDispose` no se puede usar `ref`.
   CapturaSensores? _sensores;
@@ -313,6 +315,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
     // esperar podría escribirse después y hacerlo reaparecer
     viaje.cerrarEventosEnCurso();
     _detenerSeguimiento();
+    unawaited(ref.read(avisosEventoProvider).quitarNotificacion());
     final archivoCalibracion = await _archivoCalibracion(viaje.recorridoId);
 
     final resumen = ResumenRecorrido.desde(
@@ -409,6 +412,7 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
     // con cada lectura mientras dura), sin esperar al guardado periódico, y
     // se avisa al instante (HU-14)
     _avisos.reiniciar();
+    _notificaciones.reiniciar();
     // Se carga ya: el primer evento debe respetar la preferencia
     ref.read(sonidoAvisosProvider);
     sensores.detector.alDetectar = (evento) {
@@ -416,8 +420,13 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
         viaje,
         evento,
         avisos: _avisos,
+        notificaciones: _notificaciones,
         servicio: ref.read(avisosEventoProvider),
         sonido: ref.read(sonidoAvisosProvider).value ?? true,
+        // Con la app en pantalla basta la vibración; bloqueada o en segundo
+        // plano, además la notificación
+        enPantalla:
+            WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
         ahora: DateTime.now(),
       );
       _copiloto?.evento(evento);
@@ -569,18 +578,27 @@ class ViajeNotifier extends AsyncNotifier<EstadoViaje> {
 }
 
 /// Registra [evento] en [viaje] y, si es nuevo (un evento puntual o el inicio
-/// de un exceso), vibra y suena; con [sonido] en `false`, solo vibra.
+/// de un exceso), vibra y suena; con [sonido] en `false`, solo vibra. Si la
+/// app no está [enPantalla], además muestra la notificación del sistema, como
+/// mucho una cada [UmbralesAviso.entreNotificaciones].
 void registrarYAvisar(
   ViajeActivo viaje,
   EventoRiesgo evento, {
   required GestorAvisos avisos,
+  required LimitadorNotificaciones notificaciones,
   required AvisosEvento servicio,
   required bool sonido,
+  required bool enPantalla,
   required DateTime ahora,
 }) {
   final nuevo = viaje.registrarEvento(evento);
-  if (avisos.registrar(evento, nuevo: nuevo, ahora: ahora)) {
-    servicio.avisar(sonido: sonido);
+  if (!avisos.registrar(evento, nuevo: nuevo, ahora: ahora)) return;
+  servicio.avisar(sonido: sonido);
+  if (!enPantalla && notificaciones.permitir(ahora)) {
+    servicio.notificar(
+      titulo: tituloNotificacionEvento(evento.tipo),
+      texto: textoNotificacionEvento,
+    );
   }
 }
 

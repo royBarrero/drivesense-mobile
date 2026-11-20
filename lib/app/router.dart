@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/platform/system_navigation.dart';
+import '../features/asistente/presentation/assistant_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
@@ -60,6 +62,10 @@ abstract final class Rutas {
   /// abre con `push` desde "Con destino"; al iniciar se reemplaza por el viaje
   /// en vivo.
   static const copiloto = '/copiloto';
+
+  /// Asistente de ayuda: se abre con `push` desde Inicio ("?") y Perfil
+  /// ("Ayuda").
+  static const asistente = '/asistente';
 
   /// Rutas que un usuario con sesión no debe ver.
   static const _fueraDeSesion = {arranque, login, registro, cambioContrasenia};
@@ -197,6 +203,10 @@ final rutasProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const CopilotoPantalla(),
       ),
       GoRoute(
+        path: Rutas.asistente,
+        builder: (_, _) => const AsistentePantalla(),
+      ),
+      GoRoute(
         path: Rutas.cambioContrasenia,
         builder: (_, _) => const CambioContraseniaProvisionalPantalla(),
       ),
@@ -214,7 +224,16 @@ final rutasProvider = Provider<GoRouter>((ref) {
     }
   });
 
+  // Al tocar la notificación de un evento: la pantalla del viaje en vivo, si
+  // no está ya en ella (sin viaje en curso, se queda donde está)
+  alTocarNotificacionEvento(() {
+    if (ref.read(viajeProvider).value is! ViajeEnCurso) return;
+    final actual = router.routerDelegate.currentConfiguration.uri.path;
+    if (actual != Rutas.recorrido) router.push(Rutas.recorrido);
+  });
+
   ref.onDispose(() {
+    alTocarNotificacionEvento(null);
     router.dispose();
     cambioSesion.dispose();
   });

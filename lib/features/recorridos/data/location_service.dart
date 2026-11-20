@@ -10,6 +10,10 @@ enum EstadoUbicacion { lista, permisoDenegado, permisoBloqueado, gpsApagado }
 
 /// GPS y permisos del recorrido (envuelve geolocator y permission_handler).
 class ServicioUbicacion {
+  /// El último [preparar] pidió el permiso de notificaciones y el conductor lo
+  /// negó: el viaje sigue, pero no verá los avisos con la pantalla apagada.
+  bool notificacionesNegadas = false;
+
   /// ¿Ya están concedidos los permisos? (para no mostrar la explicación de nuevo).
   Future<bool> permisosConcedidos() async {
     final ubicacion = await Geolocator.checkPermission();
@@ -21,9 +25,11 @@ class ServicioUbicacion {
 
   /// Pide los permisos que falten y comprueba que el GPS esté encendido.
   ///
-  /// El de notificaciones no es obligatorio: sin él el viaje se registra igual,
-  /// solo que no se ve el aviso fijo.
+  /// El de notificaciones (Android 13+) no es obligatorio: sin él el viaje se
+  /// registra igual, solo que no se ven el aviso fijo ni las notificaciones de
+  /// los eventos. Si lo niega, queda [notificacionesNegadas].
   Future<EstadoUbicacion> preparar() async {
+    notificacionesNegadas = false;
     var permiso = await Geolocator.checkPermission();
     if (permiso == LocationPermission.denied) {
       permiso = await Geolocator.requestPermission();
@@ -37,7 +43,8 @@ class ServicioUbicacion {
     }
 
     if (await Permission.notification.isDenied) {
-      await Permission.notification.request();
+      final estado = await Permission.notification.request();
+      notificacionesNegadas = !estado.isGranted && !estado.isLimited;
     }
 
     if (!await Geolocator.isLocationServiceEnabled()) {
@@ -47,6 +54,10 @@ class ServicioUbicacion {
   }
 
   Future<bool> abrirAjustesApp() => Geolocator.openAppSettings();
+
+  /// ¿Puede la app mostrar notificaciones? (Perfil avisa si no).
+  Future<bool> notificacionesPermitidas() async =>
+      (await Permission.notification.status).isGranted;
 
   Future<bool> abrirAjustesUbicacion() => Geolocator.openLocationSettings();
 
@@ -71,7 +82,7 @@ class ServicioUbicacion {
         intervalDuration: const Duration(seconds: 1),
         foregroundNotificationConfig: ForegroundNotificationConfig(
           notificationTitle: 'Viaje en curso',
-          notificationText: 'DriveSense está registrando tu recorrido',
+          notificationText: 'DriveSense está registrando tu viaje',
           notificationChannelName: 'Recorridos',
           notificationIcon: const AndroidResource(name: 'ic_notificacion'),
           color: ColoresDriveSense.claro.primario,
@@ -99,4 +110,10 @@ class ServicioUbicacion {
 
 final servicioUbicacionProvider = Provider<ServicioUbicacion>(
   (ref) => ServicioUbicacion(),
+);
+
+/// Si la app puede mostrar notificaciones. Con error (sin el plugin), `null`.
+final notificacionesPermitidasProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.read(servicioUbicacionProvider).notificacionesPermitidas(),
+  retry: (intento, error) => null,
 );

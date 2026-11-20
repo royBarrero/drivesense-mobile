@@ -4,6 +4,39 @@ import 'event_detector.dart';
 abstract final class UmbralesAviso {
   /// Lo que se muestra un evento puntual (frenada, aceleración o giro).
   static const duracionPuntual = Duration(seconds: 4);
+
+  /// Tiempo mínimo entre una notificación de evento y la siguiente.
+  static const entreNotificaciones = Duration(seconds: 30);
+}
+
+/// Título de la notificación del sistema de un evento.
+String tituloNotificacionEvento(TipoEvento tipo) => switch (tipo) {
+  TipoEvento.frenadaBrusca => 'Frenada brusca detectada',
+  TipoEvento.aceleracionSevera => 'Aceleración severa detectada',
+  TipoEvento.giroAgresivo => 'Giro agresivo detectado',
+  TipoEvento.excesoVelocidad => 'Exceso de velocidad detectado',
+};
+
+/// Texto de la notificación de un evento: al tocarla se abre el recorrido.
+const textoNotificacionEvento = 'Toca para volver a tu viaje.';
+
+/// Deja pasar una notificación de evento cada
+/// [UmbralesAviso.entreNotificaciones] como mínimo.
+class LimitadorNotificaciones {
+  DateTime? _ultima;
+
+  /// ¿Se puede notificar [ahora]? Si es así, cuenta como notificada.
+  bool permitir(DateTime ahora) {
+    final ultima = _ultima;
+    if (ultima != null &&
+        ahora.difference(ultima) < UmbralesAviso.entreNotificaciones) {
+      return false;
+    }
+    _ultima = ahora;
+    return true;
+  }
+
+  void reiniciar() => _ultima = null;
 }
 
 /// Decide qué eventos avisan (vibración y sonido) y recuerda el último evento

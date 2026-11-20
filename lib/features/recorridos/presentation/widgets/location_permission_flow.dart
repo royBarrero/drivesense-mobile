@@ -43,6 +43,18 @@ Future<bool> prepararUbicacion(BuildContext context, WidgetRef ref) async {
 
   final estado = await servicio.preparar();
   if (!context.mounted) return false;
+  if (servicio.notificacionesNegadas) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Sin notificaciones no verás los avisos con la pantalla apagada. '
+            'El viaje se registra igual.',
+          ),
+        ),
+      );
+  }
   switch (estado) {
     case EstadoUbicacion.lista:
       return true;
@@ -146,8 +158,9 @@ class _ExplicacionPermisos extends StatelessWidget {
               icono: Icons.notifications_none,
               titulo: 'Notificaciones',
               texto:
-                  'Para mostrar un aviso fijo mientras el viaje se registra, '
-                  'también con la pantalla apagada.',
+                  'Para avisarte de frenadas, aceleraciones, giros y excesos '
+                  'aunque tengas la pantalla apagada, y mostrar el aviso fijo '
+                  'del viaje.',
             ),
             const SizedBox(height: Espacios.xl),
             BotonPrimario(

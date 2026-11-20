@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../core/design/design.dart';
 import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/label.dart';
 import '../../auth/providers/session_provider.dart';
 import '../../gamificacion/presentation/widgets/level_card.dart';
+import '../../recorridos/data/location_service.dart';
 import '../../recorridos/providers/trip_provider.dart';
 import '../../telemetria/presentation/widgets/learning_toggle.dart';
 import '../../telemetria/providers/alert_sound_provider.dart';
@@ -107,6 +110,8 @@ class PerfilPantalla extends ConsumerWidget {
           const _Tarjeta(child: _SonidoAvisos()),
           const SizedBox(height: Espacios.m),
           const _Tarjeta(child: InterruptorAprendizaje()),
+          const SizedBox(height: Espacios.m),
+          const _Ayuda(),
           // Solo en la versión de desarrollo (HU-07)
           if (kDebugMode) ...[
             const SizedBox(height: Espacios.m),
@@ -148,36 +153,105 @@ class _SonidoAvisos extends ConsumerWidget {
     final colores = context.colores;
     final activo = ref.watch(sonidoAvisosProvider).value ?? true;
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Etiqueta('Avisos'),
-              const SizedBox(height: Espacios.xxs),
-              Text(
-                'Sonido de avisos',
-                style: context.tipografia.cuerpo.copyWith(
-                  color: colores.textoPrincipal,
-                ),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Etiqueta('Avisos'),
+                  const SizedBox(height: Espacios.xxs),
+                  Text(
+                    'Sonido de avisos',
+                    style: context.tipografia.cuerpo.copyWith(
+                      color: colores.textoPrincipal,
+                    ),
+                  ),
+                  Text(
+                    'La vibración se mantiene aunque lo silencies.',
+                    style: context.tipografia.ayuda.copyWith(
+                      color: colores.textoSecundario,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                'La vibración se mantiene aunque lo silencies.',
-                style: context.tipografia.ayuda.copyWith(
-                  color: colores.textoSecundario,
-                ),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: Espacios.s),
+            Switch(
+              value: activo,
+              onChanged: (valor) =>
+                  ref.read(sonidoAvisosProvider.notifier).cambiar(valor),
+            ),
+          ],
         ),
-        const SizedBox(width: Espacios.s),
-        Switch(
-          value: activo,
-          onChanged: (valor) =>
-              ref.read(sonidoAvisosProvider.notifier).cambiar(valor),
-        ),
+        const _AvisoNotificaciones(),
       ],
+    );
+  }
+}
+
+/// Con el permiso de notificaciones negado: no se verán los eventos con la
+/// pantalla apagada. Se vuelve a revisar al regresar de los ajustes.
+class _AvisoNotificaciones extends ConsumerStatefulWidget {
+  const _AvisoNotificaciones();
+
+  @override
+  ConsumerState<_AvisoNotificaciones> createState() =>
+      _AvisoNotificacionesState();
+}
+
+class _AvisoNotificacionesState extends ConsumerState<_AvisoNotificaciones> {
+  late final _ciclo = AppLifecycleListener(
+    onResume: () => ref.invalidate(notificacionesPermitidasProvider),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _ciclo;
+  }
+
+  @override
+  void dispose() {
+    _ciclo.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    final permitidas = ref.watch(notificacionesPermitidasProvider).value;
+    if (permitidas != false) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: Espacios.xs),
+      child: Row(
+        children: [
+          Icon(
+            Icons.notifications_off_outlined,
+            size: Medidas.icono,
+            color: colores.textoSecundario,
+          ),
+          const SizedBox(width: Espacios.xs),
+          Expanded(
+            child: Text(
+              'Notificaciones desactivadas: no verás los avisos con la '
+              'pantalla apagada.',
+              style: context.tipografia.ayuda.copyWith(
+                color: colores.textoSecundario,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () =>
+                ref.read(servicioUbicacionProvider).abrirAjustesApp(),
+            child: const Text('Activar'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -300,6 +374,75 @@ class _Dato extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Abre el asistente de ayuda (docs/diseno.md, 7.1: "Ayuda").
+class _Ayuda extends StatelessWidget {
+  const _Ayuda();
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = context.colores;
+    final tipografia = context.tipografia;
+    return Material(
+      color: colores.superficie,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radios.tarjeta),
+        side: BorderSide(color: colores.borde),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(Rutas.asistente),
+        child: Padding(
+          padding: const EdgeInsets.all(Espacios.l),
+          child: Row(
+            children: [
+              Container(
+                width: Medidas.cajaIconoFila,
+                height: Medidas.cajaIconoFila,
+                decoration: BoxDecoration(
+                  color: colores.tintePrimario,
+                  borderRadius: BorderRadius.circular(Radios.cajaIcono),
+                ),
+                child: Icon(
+                  Icons.help_outline_rounded,
+                  size: Medidas.icono,
+                  color: colores.primarioOscuro,
+                ),
+              ),
+              const SizedBox(width: Espacios.m),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Etiqueta('Ayuda'),
+                    const SizedBox(height: Espacios.xxs),
+                    Text(
+                      'Asistente de ayuda',
+                      style: tipografia.cuerpo.copyWith(
+                        color: colores.textoPrincipal,
+                      ),
+                    ),
+                    Text(
+                      'Pregunta cómo usar la app',
+                      style: tipografia.ayuda.copyWith(
+                        color: colores.textoSecundario,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: Medidas.iconoNavegacion,
+                color: colores.textoSecundario,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
